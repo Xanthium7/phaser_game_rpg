@@ -21,7 +21,7 @@ export default class Preloader extends Scene {
         // this.tileHeight = 16;
     
         const map = this.make.tilemap({ key: 'map' });
-        const tileset = map.addTilesetImage('TilesetNameInTiled', 'tileset');
+        const tileset = map.addTilesetImage('Overworld', 'tileset');
   
   // Create layers based on layer names in Tiled
         const groundLayer = map.createLayer('ground', tileset!, 0, 0);
@@ -39,7 +39,7 @@ export default class Preloader extends Scene {
             characters: [{
                 id: 'hero',
                 sprite: heroSprite,
-                startPosition: { x: 8, y: 8 },
+                startPosition: { x: 25, y: 20 },
             }],
         };
         this.gridEngine.create(map, gridEngineConfig);
