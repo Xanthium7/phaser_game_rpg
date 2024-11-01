@@ -26,13 +26,13 @@ export default class Preloader extends Scene {
   // Create layers based on layer names in Tiled
         const groundLayer = map.createLayer('ground', tileset!, 0, 0);
         const fenceLayer = map.createLayer('fence', tileset!, 0, 0);
-        fenceLayer!.setCollisionByProperty({ collides: true });
+        // fenceLayer!.setCollisionByProperty({ collides: true });
         
         const heroSprite = this.physics.add.sprite(0, 0, 'hero');
         
         // Collison thingy
-        this.physics.add.collider(heroSprite, fenceLayer!);
-        fenceLayer!.setCollisionBetween(680, 762)
+        // this.physics.add.collider(heroSprite, fenceLayer!);
+        // fenceLayer!.setCollisionByProperty({ collides: true });
         
         // Camera follow logic >o<
         this.cameras.main.startFollow(heroSprite, true)
@@ -44,12 +44,15 @@ export default class Preloader extends Scene {
                 sprite: heroSprite,
                 startPosition: { x: 25, y: 20 },
             }],
+            //collisionTilePropertyName: 'collides', 
             tiles: {
                 width: 16,
                 height: 16,
             }
         };
         this.gridEngine.create(map, gridEngineConfig);
+        
+
 
         // Objects
         
@@ -58,16 +61,16 @@ export default class Preloader extends Scene {
     update(){
         const cursors = this.input?.keyboard?.createCursorKeys();
 
-        if (cursors) {
-            if (cursors.left.isDown) {
-                this.gridEngine.move('hero', Direction.LEFT);
-            } else if (cursors.right.isDown) {
-                this.gridEngine.move('hero', Direction.RIGHT);
-            } else if (cursors.up.isDown) {
-                this.gridEngine.move('hero', Direction.UP);
-            } else if (cursors.down.isDown) {
-                this.gridEngine.move('hero', Direction.DOWN);
+        if (!this.gridEngine.isMoving('hero')) {
+            if (cursors!.left.isDown) {
+              this.gridEngine.move('hero', Direction.LEFT);
+            } else if (cursors!.right.isDown) {
+              this.gridEngine.move('hero', Direction.RIGHT);
+            } else if (cursors!.up.isDown) {
+              this.gridEngine.move('hero', Direction.UP);
+            } else if (cursors!.down.isDown) {
+              this.gridEngine.move('hero', Direction.DOWN);
             }
-        }
+          }
     }
 }
