@@ -45,7 +45,7 @@ const Game = () => {
 
     initPhaser();
   }, []);
-  return <div id="game-content" className=""></div>;
+  return <div id="game-content" className="overflow-hidden"></div>;
 };
 
 export default Game;

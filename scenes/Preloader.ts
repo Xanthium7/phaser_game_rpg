@@ -27,9 +27,12 @@ export default class Preloader extends Scene {
         const groundLayer = map.createLayer('ground', tileset!, 0, 0);
         const fenceLayer = map.createLayer('fence', tileset!, 0, 0);
         fenceLayer!.setCollisionByProperty({ collides: true });
-    
+        
         const heroSprite = this.physics.add.sprite(0, 0, 'hero');
         
+        // Collison thingy
+        this.physics.add.collider(heroSprite, fenceLayer!);
+        fenceLayer!.setCollisionBetween(680, 762)
         
         // Camera follow logic >o<
         this.cameras.main.startFollow(heroSprite, true)
@@ -41,6 +44,10 @@ export default class Preloader extends Scene {
                 sprite: heroSprite,
                 startPosition: { x: 25, y: 20 },
             }],
+            tiles: {
+                width: 16,
+                height: 16,
+            }
         };
         this.gridEngine.create(map, gridEngineConfig);
 
