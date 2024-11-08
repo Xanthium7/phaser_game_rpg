@@ -18,6 +18,7 @@ const Game = () => {
         title: "cool-title",
         parent: "game-content",
         pixelArt: true,
+        backgroundColor: "#612e1e",
         scale: {
           zoom: 2,
         },
