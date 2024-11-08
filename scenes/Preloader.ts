@@ -7,6 +7,10 @@ import Phaser, {Scene} from "phaser";
 
 export default class Preloader extends Scene {
     private gridEngine!: GridEngine;
+    private socket!: SocketIOClient.Socket;
+    private players: { [id: string]: Phaser.GameObjects.Sprite } = {};
+    private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+    private playerContainer!: Phaser.GameObjects.Container;
     constructor() {
         super('Preloader');
     }
@@ -16,61 +20,115 @@ export default class Preloader extends Scene {
         this.load.image('tileset', 'assets/Overworld.png');
         this.load.spritesheet('hero', 'assets/character.png', { frameWidth: 16, frameHeight: 32 });
     }
-    create(){
-        // this.tileWidth = 16;
-        // this.tileHeight = 16;
-    
-        const map = this.make.tilemap({ key: 'map' });
-        const tileset = map.addTilesetImage('Overworld', 'tileset');
+    create(data: { socket: SocketIOClient.Socket }) {
+      
+      this.socket = data.socket;
   
-  // Create layers based on layer names in Tiled
-        const groundLayer = map.createLayer('ground', tileset!, 0, 0);
-        const fenceLayer = map.createLayer('fence', tileset!, 0, 0);
-        // fenceLayer!.setCollisionByProperty({ collides: true });
-        
-        const heroSprite = this.physics.add.sprite(0, 0, 'hero');
-        
-        // Collison thingy
-        // this.physics.add.collider(heroSprite, fenceLayer!);
-        // fenceLayer!.setCollisionByProperty({ collides: true });
-        
-        // Camera follow logic >o<
-        this.cameras.main.startFollow(heroSprite, true)
-        this.cameras.main.setFollowOffset(-heroSprite.width, -heroSprite.height)
-    
-        const gridEngineConfig = {
-            characters: [{
-                id: 'hero',
-                sprite: heroSprite,
-                startPosition: { x: 25, y: 20 },
-            }],
-            //collisionTilePropertyName: 'collides', 
-            tiles: {
-                width: 16,
-                height: 16,
-            }
-        };
-        this.gridEngine.create(map, gridEngineConfig);
-        
+      // Create the Tilemap and Layers
+      const map = this.make.tilemap({ key: "map" });
+      const tileset = map.addTilesetImage("Overworld", "tileset");
+      const groundLayer = map.createLayer("ground", tileset!, 0, 0);
+      const fenceLayer = map.createLayer("fence", tileset!, 0, 0);
+  
+      // *Initialize GridEngine without Characters*
+      const gridEngineConfig = {
+        characters: [
 
+        ],
+      };
+      this.gridEngine.create(map, gridEngineConfig);
+  
+      this.cursors = this.input.keyboard.createCursorKeys();
+  
 
-        // Objects
-        
-    }
-
-    update(){
-        const cursors = this.input?.keyboard?.createCursorKeys();
-
-        if (!this.gridEngine.isMoving('hero')) {
-            if (cursors!.left.isDown) {
-              this.gridEngine.move('hero', Direction.LEFT);
-            } else if (cursors!.right.isDown) {
-              this.gridEngine.move('hero', Direction.RIGHT);
-            } else if (cursors!.up.isDown) {
-              this.gridEngine.move('hero', Direction.UP);
-            } else if (cursors!.down.isDown) {
-              this.gridEngine.move('hero', Direction.DOWN);
-            }
+      this.socket.on("currentPlayers", (players: any) => {
+        Object.keys(players).forEach((id) => {
+          if (id === this.socket.id) {
+            // Add the current player
+            this.addPlayer(players[id], true);
+          } else {
+            // Add other players
+            this.addPlayer(players[id], false);
           }
+        });
+      });
+  
+      // **2. New Player Joined**
+      this.socket.on("newPlayer", (playerInfo: any) => {
+        this.addPlayer(playerInfo, false);
+      });
+  
+      // **3. Player Moved**
+      this.socket.on("playerMoved", (playerInfo: any) => {
+        if (playerInfo.id !== this.socket.id) {
+          if (this.gridEngine.hasCharacter(playerInfo.id)) {
+            // Update the player's position using GridEngine
+            this.gridEngine.moveTo(playerInfo.id, {
+              x: playerInfo.x,
+              y: playerInfo.y,
+            });
+          }
+        }
+      });
+      // **4. Player Disconnected**
+      this.socket.on("playerDisconnected", (playerId: string) => {
+        if (this.players[playerId]) {
+          // Remove the player's sprite and character
+          this.players[playerId].sprite.destroy();
+          this.gridEngine.removeCharacter(playerId);
+          delete this.players[playerId];
+        }
+      });
     }
-}
+
+    update() {
+      const playerId = this.socket.id;
+  
+      // Check if the player's character exists
+      if (!this.gridEngine.hasCharacter(playerId)) return;
+  
+      // Handle input and movement
+      if (!this.gridEngine.isMoving(playerId)) {
+        if (this.cursors.left.isDown) {
+          this.gridEngine.move(playerId, Direction.LEFT);
+        } else if (this.cursors.right.isDown) {
+          this.gridEngine.move(playerId, Direction.RIGHT);
+        } else if (this.cursors.up.isDown) {
+          this.gridEngine.move(playerId, Direction.UP);
+        } else if (this.cursors.down.isDown) {
+          this.gridEngine.move(playerId, Direction.DOWN);
+        }
+      }
+  
+      // **Emit Movement Data**
+      const position = this.gridEngine.getPosition(playerId);
+      if (position) {
+        this.socket.emit("playerMovement", {
+          id: playerId,
+          x: position.x,
+          y: position.y,
+        });
+      }
+    }
+  
+    private addPlayer(playerInfo: any, isCurrentPlayer: boolean) {
+      // **Create the Player's Sprite**
+      const sprite = this.add.sprite(0, 0, "hero");
+  
+      // **Store the Player**
+      this.players[playerInfo.id] = { sprite };
+  
+      // **Add the Player to GridEngine**
+      this.gridEngine.addCharacter({
+        id: playerInfo.id,
+        sprite: sprite,
+        startPosition: { x: playerInfo.x, y: playerInfo.y },
+      });
+  
+      // **Camera Follow for Current Player**
+      if (isCurrentPlayer) {
+        this.cameras.main.startFollow(sprite, true);
+        this.cameras.main.setFollowOffset(-sprite.width, -sprite.height);
+      }
+    }
+  }
