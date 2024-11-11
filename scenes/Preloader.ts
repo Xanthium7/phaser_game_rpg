@@ -45,11 +45,12 @@ export default class Preloader extends Scene {
         this.cameras.main.setFollowOffset(-heroSprite.width, -heroSprite.height)
     
         const gridEngineConfig = {
-            characters: [{
-                id: 'hero',
-                sprite: heroSprite,
-                startPosition: { x: 25, y: 20 },
-            }],
+            // characters: [{
+            //     id: 'hero',
+            //     sprite: heroSprite,
+            //     startPosition: { x: 25, y: 20 },
+            // }],
+            characters: [],
             //collisionTilePropertyName: 'collides', 
             tiles: {
                 width: 16,
@@ -108,7 +109,7 @@ export default class Preloader extends Scene {
   }
 
   private addPlayer(playerInfo: any, isCurrentPlayer: boolean) {
-    const sprite = this.add.sprite(0, 0, 'hero');
+    const sprite = this.add.sprite(25, 20, 'hero');
     this.players[playerInfo.id] = sprite;
   
     const characterConfig = {
@@ -133,36 +134,45 @@ export default class Preloader extends Scene {
       console.log(`Character with ID ${playerId} does not exist in GridEngine`);
       return;
     }
-  
+
+
     if (!this.gridEngine.isMoving(playerId)) {
-      if (this.cursors.left.isDown) {
-        console.log("Left key is down");
-        this.gridEngine.move(playerId,Direction.LEFT);
-      } else if (this.cursors.right.isDown) {
-        console.log("Right key is down");
-        this.gridEngine.move(playerId, Direction.RIGHT);
-      } else if (this.cursors.up.isDown) {
-        console.log("Up key is down");
-        this.gridEngine.move(playerId, Direction.UP);
-      } else if (this.cursors.down.isDown) {
-        console.log("Down key is down");
-        this.gridEngine.move(playerId, Direction.DOWN);
-      } else {
-        console.log("No movement keys are pressed");
-      }
-    }
+        let moved = false;
+
+        if (this.cursors.left.isDown) {
+            console.log("Left key is down");
+            this.gridEngine.move(playerId, Direction.LEFT);
+            moved = true;
+        } else if (this.cursors.right.isDown) {
+            console.log("Right key is down");
+            this.gridEngine.move(playerId, Direction.RIGHT);
+            moved = true;
+        } else if (this.cursors.up.isDown) {
+            console.log("Up key is down");
+            this.gridEngine.move(playerId, Direction.UP);
+            moved = true;
+        } else if (this.cursors.down.isDown) {
+            console.log("Down key is down");
+            this.gridEngine.move(playerId, Direction.DOWN);
+            moved = true;
+        } else {
+            console.log("No movement keys are pressed");
+        }
   
     // Listen for movement completion
-    this.gridEngine.movementStopped().subscribe(({ charId }) => {
-      if (charId === playerId) {
-        const newPosition = this.gridEngine.getPosition(playerId);
-        console.log(`Player moved to position: x=${newPosition.x}, y=${newPosition.y}`);
-        this.socket.emit('playerMovement', {
-          id: playerId,
-          x: newPosition.x,
-          y: newPosition.y,
-        });
-      }
-    });
+    if(moved){
+
+      this.gridEngine.movementStopped().subscribe(({ charId }) => {
+        if (charId === playerId) {
+          const newPosition = this.gridEngine.getPosition(playerId);
+          console.log(`Player moved to position: x=${newPosition.x}, y=${newPosition.y}`);
+          this.socket.emit('playerMovement', {
+            id: playerId,
+            x: newPosition.x,
+            y: newPosition.y,
+          });
+        }
+      });
+    }
   }
-}
+}}
