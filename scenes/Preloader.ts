@@ -7,9 +7,18 @@ import Phaser, {Scene} from "phaser";
 
 export default class Preloader extends Scene {
     private gridEngine!: GridEngine;
+    private socket!: SocketIOClient.Socket;
+    private players: { [id: string]: Phaser.GameObjects.Sprite } = {};
+    private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     constructor() {
         super('Preloader');
     }
+
+    init(data: { socket: SocketIOClient.Socket }) {
+      this.socket = data.socket;
+      this.cursors = this.input.keyboard!.createCursorKeys();
+    }
+
     preload(){
 
         this.load.tilemapTiledJSON('map', 'assets/map.json');
@@ -28,7 +37,7 @@ export default class Preloader extends Scene {
         
         const heroSprite = this.physics.add.sprite(0, 0, 'hero');
         
-        // Collison thingy
+
        
         
         // Camera follow logic >o<
@@ -49,25 +58,111 @@ export default class Preloader extends Scene {
         };
         this.gridEngine.create(map, gridEngineConfig);
         
-
+        this.cursors = this.input.keyboard!.createCursorKeys();
 
         // Objects
-        
+        this.setupMultiplayerEvents();
     }
-
-    update(){
-        const cursors = this.input?.keyboard?.createCursorKeys();
-
-        if (!this.gridEngine.isMoving('hero')) {
-            if (cursors!.left.isDown) {
-              this.gridEngine.move('hero', Direction.LEFT);
-            } else if (cursors!.right.isDown) {
-              this.gridEngine.move('hero', Direction.RIGHT);
-            } else if (cursors!.up.isDown) {
-              this.gridEngine.move('hero', Direction.UP);
-            } else if (cursors!.down.isDown) {
-              this.gridEngine.move('hero', Direction.DOWN);
-            }
+    private setupMultiplayerEvents() {
+      // Handle current players already in the game
+      this.socket.on("currentPlayers", (players: any) => {
+        console.log('Received currentPlayers:', players);
+        Object.keys(players).forEach((id) => {
+          const playerInfo = players[id];
+          console.log(`Processing player ID: ${id}`);
+          if (id === this.socket.id) {
+            console.log('Adding current player');
+            this.addPlayer({ id, x: playerInfo.x, y: playerInfo.y }, true);
+          } else {
+            console.log('Adding other player');
+            this.addPlayer({ id, x: playerInfo.x, y: playerInfo.y }, false);
           }
+        });
+      });
+
+      
+    // Handle new player joining
+    this.socket.on("newPlayer", (playerInfo: any) => {
+      this.addPlayer(playerInfo, false);
+    });
+
+    // Handle player movement updates
+    this.socket.on("playerMoved", (playerInfo: any) => {
+      console.log('Received playerMoved:', playerInfo);
+      if (playerInfo.id !== this.socket.id && this.gridEngine.hasCharacter(playerInfo.id)) {
+        this.gridEngine.moveTo(playerInfo.id, {
+          x: playerInfo.x,
+          y: playerInfo.y,
+        });
+      }
+    });
+
+    // Handle player disconnection
+    this.socket.on("playerDisconnected", (playerId: string) => {
+      if (this.players[playerId]) {
+        this.gridEngine.removeCharacter(playerId);
+        this.players[playerId].destroy();
+        delete this.players[playerId];
+      }
+    });
+  }
+
+  private addPlayer(playerInfo: any, isCurrentPlayer: boolean) {
+    const sprite = this.add.sprite(0, 0, 'hero');
+    this.players[playerInfo.id] = sprite;
+  
+    const characterConfig = {
+      id: playerInfo.id,
+      sprite: sprite,
+      startPosition: { x: playerInfo.x, y: playerInfo.y },
+      speed: 4,
+      collides: true,
+    };
+  
+    this.gridEngine.addCharacter(characterConfig);
+  
+    if (isCurrentPlayer) {
+      this.cameras.main.startFollow(sprite, true);
+      this.cameras.main.setFollowOffset(-sprite.width, -sprite.height);
     }
+  }
+  update() {
+    const playerId = this.socket.id;
+  
+    if (!this.gridEngine.hasCharacter(playerId)) {
+      console.log(`Character with ID ${playerId} does not exist in GridEngine`);
+      return;
+    }
+  
+    if (!this.gridEngine.isMoving(playerId)) {
+      if (this.cursors.left.isDown) {
+        console.log("Left key is down");
+        this.gridEngine.move(playerId,Direction.LEFT);
+      } else if (this.cursors.right.isDown) {
+        console.log("Right key is down");
+        this.gridEngine.move(playerId, Direction.RIGHT);
+      } else if (this.cursors.up.isDown) {
+        console.log("Up key is down");
+        this.gridEngine.move(playerId, Direction.UP);
+      } else if (this.cursors.down.isDown) {
+        console.log("Down key is down");
+        this.gridEngine.move(playerId, Direction.DOWN);
+      } else {
+        console.log("No movement keys are pressed");
+      }
+    }
+  
+    // Listen for movement completion
+    this.gridEngine.movementStopped().subscribe(({ charId }) => {
+      if (charId === playerId) {
+        const newPosition = this.gridEngine.getPosition(playerId);
+        console.log(`Player moved to position: x=${newPosition.x}, y=${newPosition.y}`);
+        this.socket.emit('playerMovement', {
+          id: playerId,
+          x: newPosition.x,
+          y: newPosition.y,
+        });
+      }
+    });
+  }
 }
