@@ -63,6 +63,17 @@ export default class Preloader extends Scene {
 
         // Objects
         this.setupMultiplayerEvents();
+        this.gridEngine.movementStopped().subscribe(({ charId }) => {
+          if (charId === this.socket.id) {
+            const newPosition = this.gridEngine.getPosition(charId);
+            console.log(`Player moved to position: x=${newPosition.x}, y=${newPosition.y}`);
+            this.socket.emit('playerMovement', {
+              id: charId,
+              x: newPosition.x,
+              y: newPosition.y,
+            });
+          }
+        });
     }
     private setupMultiplayerEvents() {
       // Handle current players already in the game
@@ -160,19 +171,9 @@ export default class Preloader extends Scene {
         }
   
     // Listen for movement completion
-    if(moved){
+    // if(moved){
 
-      this.gridEngine.movementStopped().subscribe(({ charId }) => {
-        if (charId === playerId) {
-          const newPosition = this.gridEngine.getPosition(playerId);
-          console.log(`Player moved to position: x=${newPosition.x}, y=${newPosition.y}`);
-          this.socket.emit('playerMovement', {
-            id: playerId,
-            x: newPosition.x,
-            y: newPosition.y,
-          });
-        }
-      });
-    }
+      
+    // }
   }
 }}
