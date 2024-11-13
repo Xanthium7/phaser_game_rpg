@@ -120,7 +120,7 @@ export default class Preloader extends Scene {
   }
 
   private addPlayer(playerInfo: any, isCurrentPlayer: boolean) {
-    const sprite = this.add.sprite(25, 20, 'hero');
+    const sprite = this.add.sprite(0, 0, 'hero');
     this.players[playerInfo.id] = sprite;
   
     const characterConfig = {
