@@ -15,4 +15,3 @@ server: https://github.com/Xanthium7/phaser_game_server
 - Achieved Player movement to be synced between Multiple windows
 - Multiplayer Functionality in the begining stages
 
-<video autoplay muted loop playbackRate="2" src="20241114-1949-16.9803498.mp4" title="Title"></video>
