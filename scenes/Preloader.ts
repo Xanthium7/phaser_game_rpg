@@ -49,12 +49,13 @@ export default class Preloader extends Scene {
         ],
       });
       
-      this.addPlayer({ id: this.socket.id, x: startPosition.x, y: startPosition.y }, true);
+      // this.addPlayer({ id: this.socket.id, x: startPosition.x, y: startPosition.y }, true);
       this.socket.emit('playerMovement', { id: this.socket.id, x: startPosition.x, y: startPosition.y });
     
       // Handle keyboard input
       this.cursors = this.input.keyboard!.createCursorKeys();
-    
+      // Request the current players from the server
+      this.socket.emit("getCurrentPlayers");
       // Setup multiplayer events
       this.setupMultiplayerEvents();
     
@@ -90,7 +91,7 @@ export default class Preloader extends Scene {
           console.log(`Processing player ID: ${id}`);
           if (id === this.socket.id) {
             console.log('Adding current player');
-            //this.addPlayer({ id, x: playerInfo.x, y: playerInfo.y },  id === this.socket.id);
+            this.addPlayer({ id, x: playerInfo.x, y: playerInfo.y },  id === this.socket.id);
             // Current player already added
           } else {
             console.log('Adding other player');
@@ -98,6 +99,8 @@ export default class Preloader extends Scene {
           }
         });
       });
+      
+      
     
       // Handle player movement
       this.socket.on("playerMoved", (playerInfo: any) => {
