@@ -198,7 +198,7 @@ export default class Preloader extends Scene {
             this.gridEngine.move(playerId, Direction.DOWN);
             moved = true;
         } else {
-            console.log("No movement keys are pressed");
+            
         }
   
     // Listen for movement completion
