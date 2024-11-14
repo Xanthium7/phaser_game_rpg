@@ -36,7 +36,12 @@ export default class Preloader extends Scene {
       // Set the starting position
       const startPosition = { x: 25, y: 20 };
       
-      // Initialize your own player
+        // Create animations
+        this.createPlayerAnimation('down', 0, 3);
+        this.createPlayerAnimation('left', 51, 54);
+        this.createPlayerAnimation('right', 17, 20);
+        this.createPlayerAnimation('up', 34, 37);
+
       
       // Create grid engine
       this.gridEngine.create(map, {
@@ -44,9 +49,33 @@ export default class Preloader extends Scene {
           {
             id: this.socket.id,
             sprite: this.players[this.socket.id],
+            // speed: 1000,
             startPosition: startPosition,
           },
         ],
+      });
+
+      // Set up movement event listeners
+      this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
+        const sprite = this.players[charId];
+        if (sprite) {
+          sprite.anims.play(direction);
+        }
+      });
+
+      this.gridEngine.movementStopped().subscribe(({ charId, direction }) => {
+        const sprite = this.players[charId];
+        if (sprite) {
+          sprite.anims.stop();
+          sprite.setFrame(this.getStopFrame(direction));
+        }
+      });
+
+      this.gridEngine.directionChanged().subscribe(({ charId, direction }) => {
+        const sprite = this.players[charId];
+        if (sprite) {
+          sprite.setFrame(this.getStopFrame(direction));
+        }
       });
       
       // this.addPlayer({ id: this.socket.id, x: startPosition.x, y: startPosition.y }, true);
@@ -73,6 +102,35 @@ export default class Preloader extends Scene {
       });
       
     }
+
+    // ANIAMTION LOGIC
+    private createPlayerAnimation(name: string, startFrame: number, endFrame: number) {
+      this.anims.create({
+        key: name,
+        frames: this.anims.generateFrameNumbers('hero', {
+          start: startFrame,
+          end: endFrame,
+        }),
+        frameRate: 16,
+        repeat: -1,
+        yoyo: true,
+      });
+    }
+    private getStopFrame(direction: string): number {
+      switch (direction) {
+        case 'up':
+          return 34; 
+        case 'right':
+          return 17; 
+        case 'down':
+          return 0;  
+        case 'left':
+          return 51;  
+        default:
+          return 0; 
+      }
+    }
+    
     
     private setupMultiplayerEvents() {
       
@@ -136,42 +194,9 @@ export default class Preloader extends Scene {
         this.cameras.main.startFollow(sprite, true);
         this.cameras.main.setFollowOffset(-sprite.width, -sprite.height);
       }
-      // if (!isCurrentPlayer) {
-      //   this.gridEngine.addCharacter({
-      //     id: playerInfo.id,
-      //     sprite: sprite,
-      //     startPosition: { x: playerInfo.x, y: playerInfo.y },
-      //   });
-      // }
-
-      // if (!this.gridEngine.hasCharacter(playerInfo.id)) {
-      //   this.gridEngine.addCharacter({
-      //     id: playerInfo.id,
-      //     sprite: sprite,
-      //     startPosition: { x: playerInfo.x, y: playerInfo.y },
-      //   });
-      // }
+      
     }
 
-  // private addPlayer(playerInfo: any, isCurrentPlayer: boolean) {
-  //   const sprite = this.add.sprite(0, 0, 'hero');
-  //   this.players[playerInfo.id] = sprite;
-  
-  //   const characterConfig = {
-  //     id: playerInfo.id,
-  //     sprite: sprite,
-  //     startPosition: { x: playerInfo.x, y: playerInfo.y },
-  //     speed: 4,
-  //     collides: true,
-  //   };
-  
-  //   this.gridEngine.addCharacter(characterConfig);
-  
-  //   if (isCurrentPlayer) {
-  //     this.cameras.main.startFollow(sprite, true);
-  //     this.cameras.main.setFollowOffset(-sprite.width, -sprite.height);
-  //   }
-  // }
   update() {
     const playerId = this.socket.id;
   
