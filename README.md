@@ -9,3 +9,10 @@ server: https://github.com/Xanthium7/phaser_game_server
 - Achieved Player Collision with fences
 
 ![alt text](image.png)
+
+## DAY 2 - 5:
+- Achieved Player movement with Walking animation
+- Achieved Player movement to be synced between Multiple windows
+- Multiplayer Functionality in the begining stages
+
+<video controls src="20241114-1949-16.9803498.mp4" title="Title"></video>
