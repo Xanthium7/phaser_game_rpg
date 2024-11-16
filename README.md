@@ -19,3 +19,7 @@ server: https://github.com/Xanthium7/phaser_game_server
 
 https://github.com/user-attachments/assets/f1f731d4-3beb-4a94-824a-c9748e46e092
 
+## DAY 3:
+- Added Player Name field which moves around with player
+
+![image](https://github.com/user-attachments/assets/784f2972-a319-465c-a067-adbf86638555)
