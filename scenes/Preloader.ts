@@ -10,6 +10,7 @@ export default class Preloader extends Scene {
     private socket!: SocketIOClient.Socket;
     private players: { [id: string]: Phaser.GameObjects.Sprite } = {};
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+    private nameTexts: { [id: string]: Phaser.GameObjects.Text } = {};
     constructor() {
         super('Preloader');
     }
@@ -178,37 +179,40 @@ export default class Preloader extends Scene {
           this.players[id].destroy();
           delete this.players[id];
         }
+        if (this.nameTexts[id]) {
+          this.nameTexts[id].destroy();
+          delete this.nameTexts[id];
+        }
       });
     }
     
     private addPlayer(playerInfo: any, isCurrentPlayer: boolean) {
       const x = playerInfo.x * 16;
       const y = playerInfo.y * 16;
-      const sprite = this.add.sprite(0, 0, 'hero');
-      
+      const sprite = this.add.sprite(x, y, 'hero');
+      this.players[playerInfo.id] = sprite;
+
       const playerName = playerInfo.id.slice(0, 6) || 'Player';
-      const nameText = this.add.text(-sprite.width / 2 , -sprite.height / 2 + 5 , playerName, {
-        fontSize: '10px',
+
+      //These values odnt matter cause we set it in the update function
+      const nameText = this.add.text(0,0, playerName, {
+        fontSize: '8px',
+        fontStyle: 'bold',
         color: '#ffffff',
         fontFamily: 'monaco, monospace',
-        
-        
-      })
+        resolution: 1,
+      }).setOrigin(0.5, 1);
+      this.nameTexts[playerInfo.id] = nameText;
 
-      const container = this.add.container(x, y, [sprite, nameText]);
-
-      this.players[playerInfo.id] = sprite;
-      
      
       this.gridEngine.addCharacter({
         id: playerInfo.id,
         sprite: sprite,
-        container: container,
         startPosition: { x: playerInfo.x, y: playerInfo.y },
         
       });
       if (isCurrentPlayer) {
-        this.cameras.main.startFollow(container, true);
+        this.cameras.main.startFollow(sprite, true);
         this.cameras.main.setFollowOffset(-sprite.width, -sprite.height);
       }
       
@@ -216,6 +220,15 @@ export default class Preloader extends Scene {
 
   update() {
     const playerId = this.socket.id;
+
+    // Update Player Name positions
+    Object.keys(this.players).forEach((id) => {
+      const sprite = this.players[id];
+      const nameText = this.nameTexts[id];
+      if (sprite && nameText) {
+        nameText.setPosition(sprite.x + sprite.width / 2, sprite.y  );
+      }
+    });
   
     if (!this.gridEngine.hasCharacter(playerId)) {
       console.log(`Character with ID ${playerId} does not exist in GridEngine`);
