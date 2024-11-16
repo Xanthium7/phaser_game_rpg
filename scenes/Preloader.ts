@@ -182,16 +182,33 @@ export default class Preloader extends Scene {
     }
     
     private addPlayer(playerInfo: any, isCurrentPlayer: boolean) {
-      const sprite = this.add.sprite(playerInfo.x * 16, playerInfo.y * 16, 'hero');
+      const x = playerInfo.x * 16;
+      const y = playerInfo.y * 16;
+      const sprite = this.add.sprite(0, 0, 'hero');
+      
+      const playerName = playerInfo.name || 'Player';
+      const nameText = this.add.text(-sprite.width / 2 , -sprite.height / 2 + 5 , playerName, {
+        fontSize: '10px',
+        color: '#ffffff',
+        fontFamily: 'georgia',
+        
+        
+      })
+
+      const container = this.add.container(x, y, [sprite, nameText]);
+
       this.players[playerInfo.id] = sprite;
-    
+      
+     
       this.gridEngine.addCharacter({
         id: playerInfo.id,
         sprite: sprite,
+        container: container,
         startPosition: { x: playerInfo.x, y: playerInfo.y },
+        
       });
       if (isCurrentPlayer) {
-        this.cameras.main.startFollow(sprite, true);
+        this.cameras.main.startFollow(container, true);
         this.cameras.main.setFollowOffset(-sprite.width, -sprite.height);
       }
       
