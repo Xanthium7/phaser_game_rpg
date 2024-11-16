@@ -186,11 +186,11 @@ export default class Preloader extends Scene {
       const y = playerInfo.y * 16;
       const sprite = this.add.sprite(0, 0, 'hero');
       
-      const playerName = playerInfo.name || 'Player';
+      const playerName = playerInfo.id.slice(0, 6) || 'Player';
       const nameText = this.add.text(-sprite.width / 2 , -sprite.height / 2 + 5 , playerName, {
         fontSize: '10px',
         color: '#ffffff',
-        fontFamily: 'georgia',
+        fontFamily: 'monaco, monospace',
         
         
       })
@@ -242,7 +242,13 @@ export default class Preloader extends Scene {
             console.log("Down key is down");
             this.gridEngine.move(playerId, Direction.DOWN);
             moved = true;
-        } else {
+
+        }else if(this.cursors.space.isDown) {
+            alert("down")
+            
+
+        } 
+        else {
             
         }
   
