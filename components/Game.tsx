@@ -28,6 +28,7 @@ const Game = () => {
         scene: [Preloader.default],
         physics: {
           default: "arcade",
+
           arcade: {
             debug: false,
           },
