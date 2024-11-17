@@ -21,6 +21,7 @@ https://github.com/user-attachments/assets/f1f731d4-3beb-4a94-824a-c9748e46e092
 
 ## DAY 6:
 - Added Player Name field which moves around with player
+- Player name does not exist yet, so i used first 6 letters of Player id
 
 ![image](https://github.com/user-attachments/assets/784f2972-a319-465c-a067-adbf86638555)
 
