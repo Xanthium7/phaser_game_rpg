@@ -19,7 +19,15 @@ server: https://github.com/Xanthium7/phaser_game_server
 
 https://github.com/user-attachments/assets/f1f731d4-3beb-4a94-824a-c9748e46e092
 
-## DAY 3:
+## DAY 6:
 - Added Player Name field which moves around with player
 
 ![image](https://github.com/user-attachments/assets/784f2972-a319-465c-a067-adbf86638555)
+
+
+## DAY 7:
+- Made it so that very new player will get a specific sprite (built a hash function that genrates a index bettween 0 and 9 based on player id)
+- this will be usefull in distingushinf players
+- imporvements needed: every new player can select their colors
+
+![image](https://github.com/user-attachments/assets/ba8b5474-cc34-4396-90ba-6a326219c0f7)
