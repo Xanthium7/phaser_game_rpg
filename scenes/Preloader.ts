@@ -4,13 +4,16 @@ import {GridEngine, Direction} from "grid-engine";
 import Phaser, {Scene} from "phaser";
 
 
-
+      
+      
+const character_grid_width = 136 * 1
 export default class Preloader extends Scene {
     private gridEngine!: GridEngine;
     private socket!: SocketIOClient.Socket;
     private players: { [id: string]: Phaser.GameObjects.Sprite } = {};
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     private nameTexts: { [id: string]: Phaser.GameObjects.Text } = {};
+
     constructor() {
         super('Preloader');
     }
@@ -24,7 +27,7 @@ export default class Preloader extends Scene {
 
         this.load.tilemapTiledJSON('map', 'assets/map.json');
         this.load.image('tileset', 'assets/Overworld.png');
-        this.load.spritesheet('hero', 'assets/character.png', { frameWidth: 16, frameHeight: 32 });
+        this.load.spritesheet('hero', 'assets/character.png', { frameWidth: 16, frameHeight: 32, startFrame: character_grid_width, } );
     }
     create() {
       const map = this.make.tilemap({ key: 'map' });
@@ -37,11 +40,12 @@ export default class Preloader extends Scene {
       // Set the starting position
       const startPosition = { x: 25, y: 20 };
       
+      
         // Create animations
-        this.createPlayerAnimation('down', 0, 3);
-        this.createPlayerAnimation('left', 51, 54);
-        this.createPlayerAnimation('right', 17, 20);
-        this.createPlayerAnimation('up', 34, 37);
+        this.createPlayerAnimation('down', 0 , 3 );
+        this.createPlayerAnimation('right', 17 , 20 );
+        this.createPlayerAnimation('up', 34 , 37 );
+        this.createPlayerAnimation('left', 51 , 54 );
 
       
       // Create grid engine
@@ -120,7 +124,7 @@ export default class Preloader extends Scene {
     private getStopFrame(direction: string): number {
       switch (direction) {
         case 'up':
-          return 34; 
+          return 34 ; 
         case 'right':
           return 17; 
         case 'down':
@@ -128,7 +132,7 @@ export default class Preloader extends Scene {
         case 'left':
           return 51;  
         default:
-          return 0; 
+          return 0 ; 
       }
     }
     
@@ -217,6 +221,33 @@ export default class Preloader extends Scene {
       }
       
     }
+  private getColorPlayer(color: string){
+    const COLORS = ["BLUE", "WHITE", "BLACK", "BASIC", "PINK", "BROWN", "VIOLET", "YELLOW", "GREEN", "CYAN"];
+    switch (color) {
+      case "BLUE":
+        return 0;
+      case "WHITE":
+        return 0xFFFFFF;
+      case "BLACK":
+        return 0x000000;
+      case "BASIC":
+        return 0x000000;
+      case "PINK":
+        return 0xFFC0CB;
+      case "BROWN":
+        return 0xA52A2A;
+      case "VIOLET":
+        return 0xEE82EE;
+      case "YELLOW":
+        return 0xFFFF00;
+      case "GREEN":
+        return 0x008000;
+      case "CYAN":
+        return 0x00FFFF;
+      default:
+        return 0x000000;
+    }
+  }
 
   update() {
     const playerId = this.socket.id;
