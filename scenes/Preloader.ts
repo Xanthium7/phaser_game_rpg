@@ -5,7 +5,6 @@ import Phaser, {Scene} from "phaser";
 
 
       
-      
 
 export default class Preloader extends Scene {
     private gridEngine!: GridEngine;
@@ -13,6 +12,7 @@ export default class Preloader extends Scene {
     private players: { [id: string]: Phaser.GameObjects.Sprite } = {};
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     private nameTexts: { [id: string]: Phaser.GameObjects.Text } = {};
+    private characterGridWidths: { [id: string]: number } = {};
 
     constructor() {
         super('Preloader');
@@ -26,11 +26,10 @@ export default class Preloader extends Scene {
 
     preload(){
         // const character_grid_width = 136 * Math.floor(Math.random() * 10);
-        const hash = this.socket.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const character_grid_width = 136 * (hash % 10);
+       
         this.load.tilemapTiledJSON('map', 'assets/map.json');
         this.load.image('tileset', 'assets/Overworld.png');
-        this.load.spritesheet('hero', 'assets/character.png', { frameWidth: 16, frameHeight: 32, startFrame: character_grid_width, } );
+        this.load.spritesheet('hero', 'assets/character.png', { frameWidth: 16, frameHeight: 32 } );
     }
     create() {
       const map = this.make.tilemap({ key: 'map' });
@@ -44,13 +43,7 @@ export default class Preloader extends Scene {
       const startPosition = { x: 25, y: 20 };
       
       
-        // Create animations
-        this.createPlayerAnimation('down', 0 , 3 );
-        this.createPlayerAnimation('right', 17 , 20 );
-        this.createPlayerAnimation('up', 34 , 37 );
-        this.createPlayerAnimation('left', 51 , 54 );
-
-      
+       
       // Create grid engine
       this.gridEngine.create(map, {
         characters: [
@@ -67,7 +60,7 @@ export default class Preloader extends Scene {
       this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
         const sprite = this.players[charId];
         if (sprite) {
-          sprite.anims.play(direction);
+          sprite.anims.play(`${charId}_${direction}`);
         }
       });
 
@@ -75,14 +68,16 @@ export default class Preloader extends Scene {
         const sprite = this.players[charId];
         if (sprite) {
           sprite.anims.stop();
-          sprite.setFrame(this.getStopFrame(direction));
+          const characterGridWidth = this.characterGridWidths[charId];
+          sprite.setFrame(this.getStopFrame(direction, characterGridWidth));
         }
       });
 
       this.gridEngine.directionChanged().subscribe(({ charId, direction }) => {
         const sprite = this.players[charId];
         if (sprite) {
-          sprite.setFrame(this.getStopFrame(direction));
+          const characterGridWidth = this.characterGridWidths[charId];
+          sprite.setFrame(this.getStopFrame(direction, characterGridWidth));
         }
       });
       
@@ -124,18 +119,18 @@ export default class Preloader extends Scene {
         yoyo: true,
       });
     }
-    private getStopFrame(direction: string): number {
+    private getStopFrame(direction: string, characterGridWidth: number): number {
       switch (direction) {
         case 'up':
-          return 34 ; 
+          return 34 + characterGridWidth;
         case 'right':
-          return 17; 
+          return 17 + characterGridWidth;
         case 'down':
-          return 0;  
+          return 0 + characterGridWidth;
         case 'left':
-          return 51;  
+          return 51 + characterGridWidth;
         default:
-          return 0 ; 
+          return 0 + characterGridWidth;
       }
     }
     
@@ -196,8 +191,22 @@ export default class Preloader extends Scene {
     private addPlayer(playerInfo: any, isCurrentPlayer: boolean) {
       const x = playerInfo.x * 16;
       const y = playerInfo.y * 16;
-      const sprite = this.add.sprite(x, y, 'hero');
-      this.players[playerInfo.id] = sprite;
+
+
+      const hash = playerInfo.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
+      const characterGridWidth = 136 * (hash % 10);
+      this.characterGridWidths[playerInfo.id] = characterGridWidth;
+
+      const sprite = this.add.sprite(x, y, 'hero', characterGridWidth);
+
+       // Create animations
+      this.createPlayerAnimation(`${playerInfo.id}_down`, 0 + characterGridWidth, 3 + characterGridWidth);
+      this.createPlayerAnimation(`${playerInfo.id}_right`, 17 + characterGridWidth, 20 + characterGridWidth);
+      this.createPlayerAnimation(`${playerInfo.id}_up`, 34 + characterGridWidth, 37 + characterGridWidth);
+      this.createPlayerAnimation(`${playerInfo.id}_left`, 51 + characterGridWidth, 54 + characterGridWidth);
+     
+this.players[playerInfo.id] = sprite;
+      
 
       const playerName = playerInfo.id.slice(0, 6) || 'Player';
 
@@ -224,33 +233,8 @@ export default class Preloader extends Scene {
       }
       
     }
-  private getColorPlayer(color: string){
-    const COLORS = ["BLUE", "WHITE", "BLACK", "BASIC", "PINK", "BROWN", "VIOLET", "YELLOW", "GREEN", "CYAN"];
-    switch (color) {
-      case "BLUE":
-        return 0;
-      case "WHITE":
-        return 0xFFFFFF;
-      case "BLACK":
-        return 0x000000;
-      case "BASIC":
-        return 0x000000;
-      case "PINK":
-        return 0xFFC0CB;
-      case "BROWN":
-        return 0xA52A2A;
-      case "VIOLET":
-        return 0xEE82EE;
-      case "YELLOW":
-        return 0xFFFF00;
-      case "GREEN":
-        return 0x008000;
-      case "CYAN":
-        return 0x00FFFF;
-      default:
-        return 0x000000;
-    }
-  }
+    //   const COLORS = ["BLUE", "WHITE", "BLACK", "BASIC", "PINK", "BROWN", "VIOLET", "YELLOW", "GREEN", "CYAN"];
+  
 
   update() {
     const playerId = this.socket.id;
