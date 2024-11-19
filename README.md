@@ -32,3 +32,14 @@ https://github.com/user-attachments/assets/f1f731d4-3beb-4a94-824a-c9748e46e092
 - imporvements needed: every new player can select their needed color
 
 ![image](https://github.com/user-attachments/assets/ba8b5474-cc34-4396-90ba-6a326219c0f7)
+
+
+## DAY 8
+- Added ability to create and join multiple rooms
+- the players can join unquie individual rooms
+- This was easier than what iI expected initally,  since SOCKETS.IO had room feature available already
+refrence link: https://socket.io/docs/v3/rooms/
+
+![image](https://github.com/user-attachments/assets/a8147da2-d1ba-48d9-96f5-6f1ffa33ac7d)
+
+
