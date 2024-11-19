@@ -27,8 +27,8 @@ https://github.com/user-attachments/assets/f1f731d4-3beb-4a94-824a-c9748e46e092
 
 
 ## DAY 7:
-- Made it so that very new player will get a specific sprite (built a hash function that genrates a index bettween 0 and 9 based on player id)
-- this will be usefull in distingushinf players
-- imporvements needed: every new player can select their colors
+- Made it so that very new player will get a specific sprite (built a hash function that generates an index between 0 and 9 based on player id)
+- this will be useful in distinguishing multiple players
+- imporvements needed: every new player can select their needed color
 
 ![image](https://github.com/user-attachments/assets/ba8b5474-cc34-4396-90ba-6a326219c0f7)
