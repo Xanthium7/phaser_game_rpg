@@ -1,6 +1,4 @@
 "use client";
-import Phaser from "phaser";
-import { GridEngine, GridEngineHeadless } from "grid-engine";
 import { useEffect } from "react";
 import io from "socket.io-client";
 
