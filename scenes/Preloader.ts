@@ -27,9 +27,9 @@ export default class Preloader extends Scene {
     preload(){
         // const character_grid_width = 136 * Math.floor(Math.random() * 10);
        
-        this.load.tilemapTiledJSON('map', 'assets/map.json');
-        this.load.image('tileset', 'assets/Overworld.png');
-        this.load.spritesheet('hero', 'assets/character.png', { frameWidth: 16, frameHeight: 32 } );
+        this.load.tilemapTiledJSON('map', '/assets/map.json');
+        this.load.image('tileset', '/assets/Overworld.png');
+        this.load.spritesheet('hero', '/assets/character.png', { frameWidth: 16, frameHeight: 32 } );
     }
     create() {
       const map = this.make.tilemap({ key: 'map' });
