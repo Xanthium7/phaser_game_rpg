@@ -39,7 +39,5 @@ https://github.com/user-attachments/assets/f1f731d4-3beb-4a94-824a-c9748e46e092
 - the players can join unquie individual rooms
 - This was easier than what iI expected initally,  since SOCKETS.IO had room feature available already
 refrence link: https://socket.io/docs/v3/rooms/
-
-![image](https://github.com/user-attachments/assets/a8147da2-d1ba-48d9-96f5-6f1ffa33ac7d)
-
+![Screenshot 2024-11-20 000910](https://github.com/user-attachments/assets/a6465f1a-71a1-4f35-bfe7-cc2e3a84791f)
 
