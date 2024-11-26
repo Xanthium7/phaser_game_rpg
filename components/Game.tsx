@@ -4,7 +4,9 @@ import io from "socket.io-client";
 
 const Game = ({ userId }: { userId: string }) => {
   useEffect(() => {
-    const socket = io("http://localhost:3001", { query: { roomId: userId } });
+    const socket = io("http://localhost:3001", {
+      query: { roomId: userId, playername: "test" },
+    });
 
     async function initPhaser() {
       const Phaser = await import("phaser");
