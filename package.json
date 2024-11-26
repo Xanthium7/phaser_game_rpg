@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.5.0",
     "@types/socket.io-client": "^1.4.36",
     "express": "^4.21.1",
     "grid-engine": "^2.45.4",
