@@ -1,9 +1,11 @@
 "use client";
-
+import { v4 as uuidv4 } from "uuid";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { useState } from "react";
 
 export default function Home() {
+  const [roomId] = useState(() => uuidv4());
   const { isLoaded, isSignedIn, user } = useUser();
   if (!isLoaded || !isSignedIn) {
     return (
@@ -24,7 +26,10 @@ export default function Home() {
       <SignedIn>
         <UserButton />
       </SignedIn>
-      <a href="/room" className="bg-gray-800 text-white py-2 px-4 rounded">
+      <a
+        href={`/room/${roomId}`}
+        className="bg-gray-800 text-white py-2 px-4 rounded"
+      >
         Create A ROOM
       </a>
     </div>

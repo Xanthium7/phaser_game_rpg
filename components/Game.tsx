@@ -2,10 +2,10 @@
 import { useEffect } from "react";
 import io from "socket.io-client";
 
-const Game = ({ userId }: { userId: string }) => {
+const Game = ({ userId, name }: { userId: string; name: string }) => {
   useEffect(() => {
     const socket = io("http://localhost:3001", {
-      query: { roomId: userId, playername: "test" },
+      query: { roomId: userId, playername: name },
     });
 
     async function initPhaser() {
@@ -57,7 +57,7 @@ const Game = ({ userId }: { userId: string }) => {
       socket.disconnect();
     };
   }, []);
-  return <div id="game-content" className="overflow-hidden"></div>;
+  return <div id="game-content" className="overflow-hidden h-screen"></div>;
 };
 
 export default Game;

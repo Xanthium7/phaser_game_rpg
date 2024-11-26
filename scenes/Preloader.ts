@@ -9,6 +9,7 @@ import Phaser, {Scene} from "phaser";
 export default class Preloader extends Scene {
     private gridEngine!: GridEngine;
     private socket!: SocketIOClient.Socket;
+    
     private players: { [id: string]: Phaser.GameObjects.Sprite } = {};
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     private nameTexts: { [id: string]: Phaser.GameObjects.Text } = {};
@@ -82,7 +83,7 @@ export default class Preloader extends Scene {
       });
       
       // this.addPlayer({ id: this.socket.id, x: startPosition.x, y: startPosition.y }, true);
-      this.socket.emit('playerMovement', { id: this.socket.id, x: startPosition.x, y: startPosition.y });
+      this.socket.emit('playerMovement', { id: this.socket.id, x: startPosition.x, y: startPosition.y, });
     
       // Handle keyboard input
       this.cursors = this.input.keyboard!.createCursorKeys();
@@ -205,10 +206,10 @@ export default class Preloader extends Scene {
       this.createPlayerAnimation(`${playerInfo.id}_up`, 34 + characterGridWidth, 37 + characterGridWidth);
       this.createPlayerAnimation(`${playerInfo.id}_left`, 51 + characterGridWidth, 54 + characterGridWidth);
      
-this.players[playerInfo.id] = sprite;
+      this.players[playerInfo.id] = sprite;
       
 
-      const playerName = playerInfo.id.slice(0, 6) || 'Player';
+      const playerName = playerInfo.name || 'Chigga';
 
       //These values odnt matter cause we set it in the update function
       const nameText = this.add.text(0,0, playerName, {
