@@ -43,3 +43,12 @@ refrence link: https://socket.io/docs/v3/rooms/
 
 ![Screenshot 2024-11-20 000910](https://github.com/user-attachments/assets/a6465f1a-71a1-4f35-bfe7-cc2e3a84791f)
 
+
+## DAY 9 - 10
+- Added Clerk Authentication
+- Made so the username will be shown as IGNs
+- This took a while cause rect strict mode was causing double renderings and breaking the game, had to disable it
+
+![image](https://github.com/user-attachments/assets/20a70dcd-b1e4-4f8e-8eb2-3cd566bb6432)
+
+
