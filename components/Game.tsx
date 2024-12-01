@@ -17,12 +17,12 @@ const Game = ({ userId, name }: { userId: string; name: string }) => {
 
       const game = new Phaser.Game({
         type: Phaser.AUTO,
-        width: 800,
+        width: 950,
         height: 600,
         title: "cool-title",
         parent: "game-content",
         pixelArt: true,
-        backgroundColor: "#633e33",
+        backgroundColor: "#473029",
         scale: {
           zoom: 2,
         },
@@ -58,7 +58,12 @@ const Game = ({ userId, name }: { userId: string; name: string }) => {
       socket.disconnect();
     };
   }, []);
-  return <div id="game-content" className="overflow-hidden  "></div>;
+  return (
+    <div
+      id="game-content"
+      className="overflow-hidden flex justify-center  h-screen w-screen bg-black"
+    ></div>
+  );
 };
 
 export default Game;
