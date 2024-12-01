@@ -101,8 +101,8 @@ export default class Preloader extends Scene {
             id: charId,
             x: newPosition.x,
             y: newPosition.y,
-            name: this.players[charId].getData('name'),
-            // name: "NAMEE"
+            // name: this.players[charId].getData('name'),
+            name: "NAMEE"
           });
         }
       });

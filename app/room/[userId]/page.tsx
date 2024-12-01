@@ -1,5 +1,5 @@
 // import Game from "@/components/Game";
-import Room from "@/components/Game";
+import Room from "@/components/Room";
 
 async function Page({ params }: { params: { userId: string } }) {
   const { userId } = await params;
