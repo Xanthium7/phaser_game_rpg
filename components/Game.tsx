@@ -58,7 +58,7 @@ const Game = ({ userId, name }: { userId: string; name: string }) => {
       socket.disconnect();
     };
   }, []);
-  return <div id="game-content" className="overflow-hidden h-screen"></div>;
+  return <div id="game-content" className="overflow-hidden  "></div>;
 };
 
 export default Game;

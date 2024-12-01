@@ -24,7 +24,7 @@ function Room({ userId }: { userId: string }) {
       <h1 className="font-semibold">Loading...</h1>
       <h1 className="text-3xl z-10">id: {userId}</h1>
       <div>Hello, {name}!</div>
-      <Game userId={userId} name={name} />
+      <Game userId={userId} />
     </div>
   );
 }

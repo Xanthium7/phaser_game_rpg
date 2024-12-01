@@ -1,4 +1,4 @@
-import Game from "@/components/Game";
+// import Game from "@/components/Game";
 import Room from "@/components/Game";
 
 async function Page({ params }: { params: { userId: string } }) {
