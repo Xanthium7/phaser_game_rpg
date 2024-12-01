@@ -101,6 +101,7 @@ export default class Preloader extends Scene {
             id: charId,
             x: newPosition.x,
             y: newPosition.y,
+            name: this.players[charId].getData('name'),
           });
         }
       });
@@ -153,11 +154,11 @@ export default class Preloader extends Scene {
           console.log(`Processing player ID: ${id}`);
           if (id === this.socket.id) {
             console.log('Adding current player');
-            this.addPlayer({ id, x: playerInfo.x, y: playerInfo.y },  id === this.socket.id);
+            this.addPlayer(playerInfo,  id === this.socket.id);
             // Current player already added
           } else {
             console.log('Adding other player');
-            this.addPlayer({ id, x: playerInfo.x, y: playerInfo.y },  id === this.socket.id);
+            this.addPlayer(playerInfo,  id === this.socket.id);
           }
         });
       });

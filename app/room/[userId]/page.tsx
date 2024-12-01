@@ -6,7 +6,7 @@ async function Page({ params }: { params: { userId: string } }) {
 
   return (
     <div className="w-full h-full justify-center items-center flex overflow-hidden">
-      <Room userId={userId} name="RANDOM NAME"></Room>;
+      <Room userId={userId}></Room>;
     </div>
   );
 }

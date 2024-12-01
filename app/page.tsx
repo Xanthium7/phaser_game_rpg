@@ -22,7 +22,7 @@ export default function Home() {
     <div className="flex h-screen w-screen gap-11 flex-col justify-center items-center  ">
       <h1 className="font-semibold">THE GAME YEAH</h1>
 
-      <div>Hello, {user.firstName} welcome to Clerk</div>
+      <div>Hello, {user.username} welcome to Clerk</div>
       <SignedIn>
         <UserButton />
       </SignedIn>

@@ -4,8 +4,9 @@ import io from "socket.io-client";
 
 const Game = ({ userId, name }: { userId: string; name: string }) => {
   useEffect(() => {
+    console.log("NAME RECIEVED IN GAME: ", name);
     const socket = io("http://localhost:3001", {
-      query: { roomId: userId, playername: name },
+      query: { roomId: userId, playername: name || "nice name" },
     });
 
     async function initPhaser() {
