@@ -24,8 +24,12 @@ function Page() {
       style={{ fontFamily: "monaco, monospace" }}
       className="w-full flex-col h-full justify-center items-center flex overflow-hidden"
     >
-      <div className="text-xl absolute backdrop-blur-sm font- text-white top-10 right-10 z-10">
+      <div className="text-xl absolute backdrop-blur-sm flex flex-col  gap-10 text-white top-10 right-10 z-10">
         <h1 className="">Room id: {params.userId}</h1>
+        <div className="border ">
+          <h1 className="text-center">ROOM CHAT</h1>
+          <div className="border h-96 overflow-y-scroll"></div>
+        </div>
       </div>
 
       <Game userId={params.userId} name={user.username}></Game>
