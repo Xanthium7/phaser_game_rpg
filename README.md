@@ -1,4 +1,5 @@
-# Phaser RPG Game
+# Meta Verse App 
+### (Basically an app where you join and hangout with friends)
 
 This project is an RPG-like game built using Phaser.js and GridEngine. The game allows a player to move around in a tilemap world and interact with objects and environments.
 
@@ -47,7 +48,7 @@ refrence link: https://socket.io/docs/v3/rooms/
 ## DAY 9 - 10
 - Added Clerk Authentication
 - Made so the username will be shown as IGNs
-- This took a while cause rect strict mode was causing double renderings and breaking the game, had to disable it
+- This took a while cause react strict mode was causing double renderings and breaking the game, had to disable it
 
 ![image](https://github.com/user-attachments/assets/20a70dcd-b1e4-4f8e-8eb2-3cd566bb6432)
 
