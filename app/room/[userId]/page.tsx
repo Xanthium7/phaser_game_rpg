@@ -3,9 +3,9 @@ import Game from "@/components/Game";
 import { useParams } from "next/navigation";
 // import Room from "@/components/Room";
 import { useUser } from "@clerk/nextjs";
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, useEffect, ChangeEvent, useRef, FormEvent } from "react";
 import Chat from "@/components/Chat";
-// import io from "socket.io-client";
+import io from "socket.io-client";
 
 function Page() {
   const params = useParams<{ userId: string; tag: string; item: string }>();
@@ -15,6 +15,71 @@ function Page() {
     { message: string; user: string; time: string }[]
   >([]);
 
+  const socketRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !user) return;
+
+    // Establish the socket connection only once
+    if (socketRef.current === null) {
+      const socket = io("http://localhost:3001", {
+        query: {
+          roomId: params.userId,
+          playername: user.username,
+        },
+      });
+
+      socketRef.current = socket;
+
+      // Listen for chat messages
+      socket.on("chatMessage", (data: any) => {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            message: data.message,
+            user: data.playername,
+            time: data.time,
+          },
+        ]);
+      });
+
+      // Handle socket disconnection
+      socket.on("disconnect", () => {
+        console.log("Socket disconnected");
+      });
+    }
+
+    // Clean up the socket connection on unmount
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
+  }, [user]);
+
+  const updateMessage = (e: ChangeEvent<HTMLInputElement>) => {
+    setMessage(e.target.value);
+  };
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (socketRef.current) {
+      socketRef.current.emit("chatMessage", { message });
+
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          message: message,
+          user: user.username,
+          time: new Date().toLocaleTimeString(),
+        },
+      ]);
+
+      setMessage("");
+    }
+  };
+
   if (!isLoaded || !isSignedIn) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -23,20 +88,21 @@ function Page() {
     );
   }
 
-  const updateMessage = (e: ChangeEvent<HTMLInputElement>) => {
-    setMessage(e.target.value);
-  };
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (message.trim() === "") return;
-    const newMessage = {
-      message: message,
-      user: user.username || "Guest",
-      time: new Date().toLocaleTimeString(),
-    };
-    setMessage("");
-    setMessages([...messages, newMessage]);
-  };
+  // const updateMessage = (e: ChangeEvent<HTMLInputElement>) => {
+  //   setMessage(e.target.value);
+  // };
+  // const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  //   e.preventDefault();
+  //   if (message.trim() === "") return;
+  //   const newMessage = {
+  //     message: message,
+  //     user: user.username || "Guest",
+  //     time: new Date().toLocaleTimeString(),
+  //   };
+  //   socket.emit("chatMessage", newMessage);
+  //   setMessage("");
+  //   setMessages([...messages, newMessage]);
+  // };
 
   return (
     <div
