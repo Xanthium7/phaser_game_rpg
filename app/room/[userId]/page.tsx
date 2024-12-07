@@ -5,12 +5,15 @@ import { useParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useState, useEffect, ChangeEvent } from "react";
 import Chat from "@/components/Chat";
+// import io from "socket.io-client";
 
 function Page() {
   const params = useParams<{ userId: string; tag: string; item: string }>();
   const { isLoaded, isSignedIn, user } = useUser();
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<
+    { message: string; user: string; time: string }[]
+  >([]);
 
   if (!isLoaded || !isSignedIn) {
     return (
@@ -23,23 +26,16 @@ function Page() {
   const updateMessage = (e: ChangeEvent<HTMLInputElement>) => {
     setMessage(e.target.value);
   };
-
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setMessages([
-      ...messages,
-      {
-        message,
-        user: user.username,
-        date: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      },
-    ]);
-
-    console.log("Message submitted:", message);
+    if (message.trim() === "") return;
+    const newMessage = {
+      message: message,
+      user: user.username || "Guest",
+      time: new Date().toLocaleTimeString(),
+    };
     setMessage("");
+    setMessages([...messages, newMessage]);
   };
 
   return (
@@ -48,17 +44,20 @@ function Page() {
       className="w-full flex-col h-full justify-center items-center flex overflow-hidden"
     >
       <div className="text-xl absolute backdrop-blur-sm flex flex-col max-w-[20vw]   text-white top-10 right-10 z-10">
-        <h1 className="">Room id: {params.userId}</h1>
+        <h1 className="text-sm">
+          <span className="font-extrabold text-lg">Room id</span>:{" "}
+          {params.userId}
+        </h1>
         <div className="border-[1px] rounded-md ">
           <h1 className="text-center border-b-[1px]">ROOM CHAT</h1>
 
           <div className=" flex flex-col justify-end h-96 overflow-y-scroll ">
-            {messages.map((message, index) => (
+            {messages.map((msg, index) => (
               <Chat
                 key={index}
-                message={message.message}
-                user={message.user}
-                time={message.date}
+                message={msg.message}
+                user={msg.user}
+                time={msg.time}
               />
             ))}
           </div>
