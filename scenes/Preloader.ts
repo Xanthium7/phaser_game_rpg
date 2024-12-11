@@ -1,6 +1,13 @@
 import { GridEngine, Direction } from "grid-engine";
 import Phaser, { Scene } from "phaser";
 
+// to prevent chat controls from messing with game controls
+declare global {
+  interface Window {
+    isChatFocused: boolean;
+  }
+}
+
 export default class Preloader extends Scene {
   private gridEngine!: GridEngine;
   private socket!: SocketIOClient.Socket;
@@ -268,6 +275,10 @@ export default class Preloader extends Scene {
 
     if (!this.gridEngine.hasCharacter(playerId)) {
       console.log(`Character with ID ${playerId} does not exist in GridEngine`);
+      return;
+    }
+    // **Check if chat input is focused**
+    if (window.isChatFocused) {
       return;
     }
 

@@ -31,6 +31,7 @@ const Game = ({ userId }: { userId: string }) => {
         },
       ]);
     });
+    window.isChatFocused = false;
 
     // Handle socket disconnection
     socket.on("disconnect", () => {
@@ -106,8 +107,23 @@ const Game = ({ userId }: { userId: string }) => {
       ]);
 
       setMessage("");
+      handleBlur();
     }
   };
+
+  //* FIXING SPACE-KEY OF ROOM CHAT INTERFIREING WITH SPACE-KEY OF GAME CONTROL
+  const [isInputFocused, setIsInputFocused] = useState(false);
+
+  const handleFocus = () => {
+    setIsInputFocused(true);
+    window.isChatFocused = true;
+  };
+
+  const handleBlur = () => {
+    setIsInputFocused(false);
+    window.isChatFocused = false;
+  };
+
   return (
     <>
       <div
@@ -146,6 +162,8 @@ const Game = ({ userId }: { userId: string }) => {
               type="text"
               name="message"
               value={message}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
               onChange={updateMessage}
             />
             <button className="bg-[#38393f] px-3 py-1 " type="submit">
