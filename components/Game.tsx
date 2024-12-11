@@ -48,7 +48,7 @@ const Game = ({ userId }: { userId: string }) => {
         type: Phaser.AUTO,
         width: 950,
         height: 600,
-        title: "cool-title",
+        title: "2D VERSE",
         parent: "game-content",
         pixelArt: true,
         backgroundColor: "#473029",

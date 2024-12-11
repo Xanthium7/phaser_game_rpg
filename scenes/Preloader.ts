@@ -43,6 +43,8 @@ export default class Preloader extends Scene {
     const groundLayer = map.createLayer("ground", tileset!, 0, 0);
     const fenceLayer = map.createLayer("fence", tileset!, 0, 0);
 
+    this.input.keyboard.removeCapture(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
     // Set the starting position
     const startPosition = { x: 25, y: 20 };
 
