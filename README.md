@@ -53,3 +53,11 @@ refrence link: https://socket.io/docs/v3/rooms/
 ![image](https://github.com/user-attachments/assets/20a70dcd-b1e4-4f8e-8eb2-3cd566bb6432)
 
 
+## DAY 11 - 13
+- Addd a working room chat in all game instances.
+- Fixed the issues with room chat contarols and game ckey conterols overlapping
+
+![image](https://github.com/user-attachments/assets/a5336b9f-ebff-46df-baaa-1893d47de24d)
+
+
+
