@@ -42,7 +42,6 @@ const Game = ({ userId }: { userId: string }) => {
       const Phaser = await import("phaser");
       const { default: GridEngine } = await import("grid-engine");
       const Preloader = await import("../scenes/Preloader");
-      //   const TestScene = await import("./scenes/TestScene");
 
       const game = new Phaser.Game({
         type: Phaser.AUTO,
