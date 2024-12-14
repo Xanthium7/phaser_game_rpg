@@ -316,6 +316,7 @@ export default class Preloader extends Scene {
         alert("down");
       } else {
       }
-
+      stupid;
+    }
   }
 }
