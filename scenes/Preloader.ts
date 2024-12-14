@@ -317,10 +317,5 @@ export default class Preloader extends Scene {
       } else {
       }
 
-      // Listen for movement completion
-      // if(moved){
-
-      // }
-    }
   }
 }
