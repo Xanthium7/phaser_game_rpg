@@ -11,6 +11,7 @@ declare global {
 export default class Preloader extends Scene {
   private gridEngine!: GridEngine;
   private socket!: SocketIOClient.Socket;
+  private shiftKey!: Phaser.Input.Keyboard.Key;
 
   private players: { [id: string]: Phaser.GameObjects.Sprite } = {};
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -23,15 +24,18 @@ export default class Preloader extends Scene {
 
   init(data: { socket: SocketIOClient.Socket }) {
     this.socket = data.socket;
-
+    this.shiftKey = this.input.keyboard!.addKey(
+      Phaser.Input.Keyboard.KeyCodes.SHIFT
+    );
+    this.input.keyboard!.addCapture([Phaser.Input.Keyboard.KeyCodes.SHIFT]);
     this.cursors = this.input.keyboard!.createCursorKeys();
   }
 
   preload() {
     // const character_grid_width = 136 * Math.floor(Math.random() * 10);
 
-    this.load.tilemapTiledJSON("map", "/assets/map.json");
-    this.load.image("tileset", "/assets/Overworld.png");
+    this.load.tilemapTiledJSON("map", "/assets/map1.json");
+    this.load.image("tileset", "/assets/Overworld1.png");
     this.load.spritesheet("hero", "/assets/character.png", {
       frameWidth: 16,
       frameHeight: 32,
@@ -41,12 +45,13 @@ export default class Preloader extends Scene {
     const map = this.make.tilemap({ key: "map" });
     const tileset = map.addTilesetImage("Overworld", "tileset");
     const groundLayer = map.createLayer("ground", tileset!, 0, 0);
-    const fenceLayer = map.createLayer("fence", tileset!, 0, 0);
+    const fenceLayer = map.createLayer("colliding", tileset!, 0, 0);
+    const vaseLayer = map.createLayer("vases", tileset!, 0, 0);
 
     this.input.keyboard.removeCapture(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     // Set the starting position
-    const startPosition = { x: 25, y: 20 };
+    const startPosition = { x: 130, y: 80 };
 
     // Create grid engine
     this.gridEngine.create(map, {
@@ -55,6 +60,7 @@ export default class Preloader extends Scene {
           id: this.socket.id,
           sprite: this.players[this.socket.id],
           // speed: 1000,
+          speed: 4,
           startPosition: startPosition,
         },
       ],
@@ -249,6 +255,7 @@ export default class Preloader extends Scene {
         resolution: 1,
       })
       .setOrigin(0.5, 1);
+    nameText.setDepth(10);
     this.nameTexts[playerInfo.id] = nameText;
 
     this.gridEngine.addCharacter({
@@ -286,6 +293,8 @@ export default class Preloader extends Scene {
 
     if (!this.gridEngine.isMoving(playerId)) {
       let moved = false;
+      const speed = this.shiftKey.isDown ? 8 : 4;
+      this.gridEngine.setSpeed(playerId, speed);
 
       if (this.cursors.left.isDown) {
         console.log("Left key is down");
