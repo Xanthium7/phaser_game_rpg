@@ -1,3 +1,5 @@
+
+https://github.com/user-attachments/assets/f6d48489-069b-409d-bab2-91ec9f3b4d4e
 # Meta Verse App 
 ### (Basically an app where you join and hangout with friends)
 
@@ -58,6 +60,16 @@ refrence link: https://socket.io/docs/v3/rooms/
 - Fixed the issues with room chat contarols and game ckey conterols overlapping
 
 ![image](https://github.com/user-attachments/assets/a5336b9f-ebff-46df-baaa-1893d47de24d)
+
+## DAY 14
+- I was wokring on a new map for this game for a while now and Finally added it to the Game
+- Added a Feature to Sprint when u hold down shift key, makes you go twice the speed
+- Fixed the Name text bug where it got overloapped by fneces, added a Depth value of 10
+
+https://github.com/user-attachments/assets/d6f0b0de-1008-4716-b40f-00a54a43c284
+
+
+  
 
 
 
