@@ -1,6 +1,5 @@
 
-https://github.com/user-attachments/assets/f6d48489-069b-409d-bab2-91ec9f3b4d4e
-# Meta Verse App 
+# 2D Verse App 
 ### (Basically an app where you join and hangout with friends)
 
 This project is an RPG-like game built using Phaser.js and GridEngine. The game allows a player to move around in a tilemap world and interact with objects and environments.
