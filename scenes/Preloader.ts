@@ -245,7 +245,7 @@ export default class Preloader extends Scene {
 
     const playerName = playerInfo.name || "Chigga";
 
-    //These values odnt matter cause we set it in the update function
+    //These values dodnt matter cause we set it in the update function
     const nameText = this.add
       .text(0, 0, playerName, {
         fontSize: "8px",
