@@ -3,6 +3,9 @@ import { useEffect, useState, useRef, ChangeEvent, FormEvent } from "react";
 import io from "socket.io-client";
 import Chat from "@/components/Chat";
 import { useUser } from "@clerk/nextjs";
+import { MdContentCopy } from "react-icons/md";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Game = ({ userId }: { userId: string }) => {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -123,16 +126,39 @@ const Game = ({ userId }: { userId: string }) => {
     window.isChatFocused = false;
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(userId);
+    notify();
+  };
+  const notify = () =>
+    toast("COPIED", {
+      position: "bottom-right",
+      autoClose: 3000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      theme: "light",
+    });
+
   return (
     <>
+      <ToastContainer />
       <div
         id="game-content"
         className="overflow-hidden flex justify-center  h-screen w-screen bg-black"
       ></div>
 
-      <div className="text-xl absolute backdrop-blur-sm flex flex-col max-w-[20vw]   text-white top-10 right-10 z-10">
+      <div className="text-xl absolute backdrop-blur-sm flex flex-col max-w-[21vw]   text-white top-10 right-10 z-10">
         <h1 className="text-sm">
-          <span className="font-extrabold text-lg">Room id</span>: {userId}
+          <span className="font-extrabold text-lg">Room id</span>:{" "}
+          <span>
+            {userId}
+            <MdContentCopy
+              onClick={handleCopy}
+              className="cursor-pointer inline mx-2 scale-110 hover:scale-150 transition-all ease-in-out duration-100"
+            />
+          </span>
         </h1>
         <div className="border-[1px] rounded-md ">
           <h1 className="text-center border-b-[1px]">ROOM CHAT</h1>
@@ -156,7 +182,7 @@ const Game = ({ userId }: { userId: string }) => {
             onSubmit={handleSubmit}
           >
             <input
-              placeholder="type something..."
+              placeholder="Type something..."
               className="w-full rounded-md px-2 py-1 text-[#111] text-sm"
               type="text"
               name="message"
