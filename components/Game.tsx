@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, ChangeEvent, FormEvent } from "react";
 import io from "socket.io-client";
 import Chat from "@/components/Chat";
 import { useUser } from "@clerk/nextjs";
@@ -15,9 +15,9 @@ const Game = ({ userId }: { userId: string }) => {
   useEffect(() => {
     if (!isLoaded) return;
 
-    console.log("NAME RECIEVED IN GAME: ", user.username);
+    console.log("NAME RECIEVED IN GAME: ", user?.username);
     const socket = io("http://localhost:3001", {
-      query: { roomId: userId, playername: user.username || "nice name" },
+      query: { roomId: userId, playername: user?.username || "nice name" },
     });
     socketRef.current = socket; // To access this socket in the Form functions
 
@@ -26,7 +26,7 @@ const Game = ({ userId }: { userId: string }) => {
         ...prevMessages,
         {
           message: data.message,
-          user: data.playername,
+          user: data.playername || "Anonymous",
           time: data.time,
         },
       ]);
@@ -100,7 +100,7 @@ const Game = ({ userId }: { userId: string }) => {
         ...prevMessages,
         {
           message: message,
-          user: user.username,
+          user: user?.username || "Anonymous",
           time: new Date().toLocaleTimeString(),
         },
       ]);

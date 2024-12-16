@@ -48,7 +48,7 @@ export default class Preloader extends Scene {
     const fenceLayer = map.createLayer("colliding", tileset!, 0, 0);
     const vaseLayer = map.createLayer("vases", tileset!, 0, 0);
 
-    this.input.keyboard.removeCapture(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.input.keyboard?.removeCapture(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     // Set the starting position
     const startPosition = { x: 130, y: 80 };
