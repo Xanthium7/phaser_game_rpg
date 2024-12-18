@@ -6,6 +6,7 @@ import { useUser } from "@clerk/nextjs";
 import { MdContentCopy } from "react-icons/md";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { table } from "console";
 
 const Game = ({ userId }: { userId: string }) => {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -14,6 +15,11 @@ const Game = ({ userId }: { userId: string }) => {
     { message: string; user: string; time: string }[]
   >([]);
   const socketRef = useRef<any>(null);
+
+  // Video call
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreams = useRef<{ [id: string]: MediaStream }>({});
+  const peerConnections = useRef<{ [id: string]: RTCPeerConnection }>({});
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -35,6 +41,68 @@ const Game = ({ userId }: { userId: string }) => {
       ]);
     });
     window.isChatFocused = false;
+
+    //*  Video call Part
+
+    // Getthing those media devices
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        localStreamRef.current = stream;
+      })
+      .catch((error) => {
+        console.error("Error accessing media devices.", error);
+        alert(
+          "Please allow access to camera and microphone to use the video call feature. 🥺🥺"
+        );
+      });
+
+    // hading the Video Call Emits from server,  when p pressed
+    socket.on("initiate-video-call", ({ targets }: { targets: string[] }) => {
+      targets.forEach(async (targetId) => {
+        await createPeerConnection(targetId, true);
+      });
+    });
+
+    // Video offer
+    socket.on("video-offer", async (data: any) => {
+      const { sdp, sender } = data;
+      await createPeerConnection(sender, false, sdp);
+    });
+
+    // Video answer
+    socket.on("video-answer", async (data: any) => {
+      const { sdp, sender } = data;
+      const peerConnection = peerConnections.current[sender];
+      if (peerConnection) {
+        await peerConnection.setRemoteDescription(
+          new RTCSessionDescription(sdp)
+        );
+      }
+    });
+
+    // ICE CANDIDATE
+
+    socket.on("new-ice-candidate", async (data: any) => {
+      const { candidate, sender } = data;
+      const peerConnection = peerConnections.current[sender];
+      if (peerConnection && candidate) {
+        try {
+          await peerConnection.addIceCandidate(candidate);
+        } catch (e) {
+          console.error("Error adding received ice candidate", e);
+        }
+      }
+    });
+    socket.on(
+      "initiate-video-call",
+      async ({ targets, sender }: { targets: string[]; sender: string }) => {
+        if (targets.includes(socket.id)) {
+          // Start the peer connection with the initiator
+          await createPeerConnection(sender, false);
+        }
+      }
+    );
 
     // Handle socket disconnection
     socket.on("disconnect", () => {
@@ -88,8 +156,72 @@ const Game = ({ userId }: { userId: string }) => {
     return () => {
       socket.disconnect();
       socketRef.current = null;
+      Object.values(peerConnections.current).forEach((pc) => pc.close());
+      peerConnections.current = {};
     };
   }, [isLoaded]);
+
+  //*  Video call Part
+  const createPeerConnection = async (
+    targetId: string,
+    isOffer: boolean,
+    remoteSdp?: RTCSessionDescriptionInit
+  ) => {
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }], // using google stun server
+    });
+
+    peerConnections.current[targetId] = pc;
+
+    //Adding local stream to peer connection
+    localStreamRef.current?.getTracks().forEach((track) => {
+      pc.addTrack(track, localStreamRef.current!);
+    });
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socketRef.current.emit("new-ice-candidate", {
+          target: targetId,
+          candidate: event.candidate,
+        });
+      }
+    };
+
+    pc.ontrack = (event) => {
+      remoteStreams.current[targetId] = event.streams[0];
+      setRemoteStreamsMap({ ...remoteStreams.current });
+    };
+
+    if (isOffer) {
+      // Make Offer
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      //sending offer part
+      socketRef.current.emit("video-offer", {
+        target: targetId,
+        sdp: pc.localDescription,
+      });
+    } else {
+      // Set remote description with received offer
+      await pc.setRemoteDescription(new RTCSessionDescription(remoteSdp!));
+
+      // Create answer
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      // Send answer back to caller
+      socketRef.current.emit("video-answer", {
+        target: targetId,
+        sdp: pc.localDescription,
+      });
+    }
+  };
+  // State to trigger re-render when remote streams change
+  const [remoteStreamsMap, setRemoteStreamsMap] = useState<{
+    [id: string]: MediaStream;
+  }>({});
+
   const updateMessage = (e: ChangeEvent<HTMLInputElement>) => {
     setMessage(e.target.value);
   };
@@ -148,6 +280,36 @@ const Game = ({ userId }: { userId: string }) => {
         id="game-content"
         className="overflow-hidden flex justify-center  h-screen w-screen bg-black"
       ></div>
+
+      <div className="video-chat-container absolute bottom-0 right-0 z-10">
+        {/* Local Video */}
+        {localStreamRef.current && (
+          <video
+            className="local-video"
+            ref={(video) => {
+              if (video) {
+                video.srcObject = localStreamRef.current;
+              }
+            }}
+            autoPlay
+            muted // Mute self video
+          ></video>
+        )}
+
+        {/* Remote Videos */}
+        {Object.keys(remoteStreamsMap).map((peerId) => (
+          <video
+            key={peerId}
+            className="remote-video"
+            ref={(video) => {
+              if (video) {
+                video.srcObject = remoteStreamsMap[peerId];
+              }
+            }}
+            autoPlay
+          ></video>
+        ))}
+      </div>
 
       <div className="text-xl absolute backdrop-blur-sm flex flex-col max-w-[21vw]   text-white top-10 right-10 z-10">
         <h1 className="text-sm">

@@ -24,6 +24,9 @@ export default class Preloader extends Scene {
 
   init(data: { socket: SocketIOClient.Socket }) {
     this.socket = data.socket;
+    // This is the Video Call HOT KEY
+    this.input.keyboard!.on("keydown-P", this.handleVideoCall, this);
+
     this.shiftKey = this.input.keyboard!.addKey(
       Phaser.Input.Keyboard.KeyCodes.SHIFT
     );
@@ -121,6 +124,30 @@ export default class Preloader extends Scene {
         });
       }
     });
+  }
+
+  // VIDEO CALL LOGIC
+  private handleVideoCall() {
+    const currentPlayerPosition = this.gridEngine.getPosition(this.socket.id);
+
+    //getting those players in a 2 block radius
+    const nearbyPlayers = Object.keys(this.players).filter((id) => {
+      if (id === this.socket.id) return false; // Avoiding the current player
+      const position = this.gridEngine.getPosition(id);
+
+      //Get all other players distances
+      const dx = Math.abs(position.x - currentPlayerPosition.x);
+      const dy = Math.abs(position.y - currentPlayerPosition.y);
+      return dx <= 2 && dy <= 2;
+    });
+
+    // i can use .length here cause Flitermethod creates an array
+    if (nearbyPlayers.length > 0) {
+      this.socket.emit("initiate-video-call", { targets: nearbyPlayers });
+    } else {
+      // Display "No players nearby..." message
+      alert("No players nearby...");
+    }
   }
 
   // ANIAMTION LOGIC
