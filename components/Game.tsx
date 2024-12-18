@@ -156,7 +156,7 @@ const Game = ({ userId }: { userId: string }) => {
             {userId}
             <MdContentCopy
               onClick={handleCopy}
-              className="cursor-pointer inline mx-2 scale-110 hover:scale-150 transition-all ease-in-out duration-100"
+              className="cursor-pointer inline mx-2 scale-110 hover:scale-[1.25]  transition-all ease-in-out duration-100"
             />
           </span>
         </h1>
