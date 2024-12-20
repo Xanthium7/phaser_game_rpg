@@ -60,11 +60,6 @@ const Game = ({ userId }: { userId: string }) => {
       setCallerId(from);
       setShowCallModal(true);
     });
-    socket.on("video-call-offer", ({ from }) => {
-      // Show modal, let user accept
-      setCallerId(from);
-      setShowCallModal(true);
-    });
 
     // 4) (Optional) Listen for call-accepted
     socket.on("call-accepted", async ({ from }) => {
@@ -313,7 +308,7 @@ const Game = ({ userId }: { userId: string }) => {
       ></div>
 
       {showCallModal && callerId && (
-        <div className="modal-overlay">
+        <div className="modal-overlay absolute top-1/4 bg-gray-600 flex items-center justify-center z-20 h-[50vh] w-[75vw]">
           <div className="modal-content">
             <p>Incoming call from {callerId}</p>
             <button onClick={acceptCall}>Accept</button>
@@ -322,10 +317,11 @@ const Game = ({ userId }: { userId: string }) => {
         </div>
       )}
       {remoteStreamRef.current && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay absolute top-1/4 bg-gray-600 flex items-center justify-center z-20 h-[50vh] w-[75vw]">
+          <div className="modal-content flex justify-center items-center">
             {/* Remote video */}
             <video
+              className="w-1/2 h-full"
               autoPlay
               ref={(videoElem) => {
                 if (videoElem && remoteStreamRef.current) {
@@ -335,6 +331,7 @@ const Game = ({ userId }: { userId: string }) => {
             />
             {/* Local video */}
             <video
+              className="w-1/2 h-full"
               autoPlay
               muted
               ref={(localVid) => {

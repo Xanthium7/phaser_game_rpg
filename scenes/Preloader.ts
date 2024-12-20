@@ -66,6 +66,10 @@ export default class Preloader extends Scene {
       ],
     });
 
+    this.input.keyboard!.on("keydown-P", () => {
+      this.handleVideoCall();
+    });
+
     // Set up movement event listeners
     this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
       const sprite = this.players[charId];
@@ -121,6 +125,44 @@ export default class Preloader extends Scene {
         });
       }
     });
+  }
+
+  private handleVideoCall(): void {
+    // Current player’s ID, position, and facing direction
+    const currentPlayerId = this.socket.id;
+    const facingDirection = this.gridEngine.getFacingDirection(currentPlayerId);
+    const currentPosition = this.gridEngine.getPosition(currentPlayerId);
+
+    // Compute the tile in front of the player
+    const targetPosition = { ...currentPosition };
+    switch (facingDirection) {
+      case "up":
+        targetPosition.y -= 1;
+        break;
+      case "down":
+        targetPosition.y += 1;
+        break;
+      case "left":
+        targetPosition.x -= 1;
+        break;
+      case "right":
+        targetPosition.x += 1;
+        break;
+    }
+
+    // Check if another player occupies that tile
+    const playersInFront = Object.keys(this.players).filter((id) => {
+      if (id === currentPlayerId) return false;
+      const pos = this.gridEngine.getPosition(id);
+      return pos.x === targetPosition.x && pos.y === targetPosition.y;
+    });
+
+    if (playersInFront.length > 0) {
+      const targetPlayerId = playersInFront[0]; // Single player
+      this.socket.emit("initiate-video-call", { targetId: targetPlayerId });
+    } else {
+      alert("No player is in front of you.");
+    }
   }
 
   // ANIAMTION LOGIC
