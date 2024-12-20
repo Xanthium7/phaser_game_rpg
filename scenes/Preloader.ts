@@ -128,25 +128,39 @@ export default class Preloader extends Scene {
 
   // VIDEO CALL LOGIC
   private handleVideoCall() {
-    const currentPlayerPosition = this.gridEngine.getPosition(this.socket.id);
+    const currentPlayerId = this.socket.id;
+    const currentPosition = this.gridEngine.getPosition(currentPlayerId);
+    const facingDirection = this.gridEngine.getFacingDirection(currentPlayerId);
 
-    //getting those players in a 2 block radius
-    const nearbyPlayers = Object.keys(this.players).filter((id) => {
-      if (id === this.socket.id) return false; // Avoiding the current player
+    // Calculate the position in front of the player
+    let targetPosition = { ...currentPosition };
+    switch (facingDirection) {
+      case "up":
+        targetPosition.y -= 1;
+        break;
+      case "down":
+        targetPosition.y += 1;
+        break;
+      case "left":
+        targetPosition.x -= 1;
+        break;
+      case "right":
+        targetPosition.x += 1;
+        break;
+    }
+
+    // Check if another player is at the target position
+    const playersInFront = Object.keys(this.players).filter((id) => {
+      if (id === currentPlayerId) return false;
       const position = this.gridEngine.getPosition(id);
-
-      //Get all other players distances
-      const dx = Math.abs(position.x - currentPlayerPosition.x);
-      const dy = Math.abs(position.y - currentPlayerPosition.y);
-      return dx <= 2 && dy <= 2;
+      return position.x === targetPosition.x && position.y === targetPosition.y;
     });
 
-    // i can use .length here cause Flitermethod creates an array
-    if (nearbyPlayers.length > 0) {
-      this.socket.emit("initiate-video-call", { targets: nearbyPlayers });
+    if (playersInFront.length > 0) {
+      const targetPlayerId = playersInFront[0]; // Assuming one player in front
+      this.socket.emit("initiate-video-call", { targetId: targetPlayerId });
     } else {
-      // Display "No players nearby..." message
-      alert("No players nearby...");
+      alert("No player is in front of you.");
     }
   }
 

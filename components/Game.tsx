@@ -20,6 +20,9 @@ const Game = ({ userId }: { userId: string }) => {
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreams = useRef<{ [id: string]: MediaStream }>({});
   const peerConnections = useRef<{ [id: string]: RTCPeerConnection }>({});
+  const [isVideoCallModalOpen, setIsVideoCallModalOpen] = useState(false);
+  const [callFrom, setCallFrom] = useState<string | null>(null);
+  const [isCalling, setIsCalling] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) return;
