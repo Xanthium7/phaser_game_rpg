@@ -17,8 +17,8 @@ const Game = ({ userId }: { userId: string }) => {
 
   //*  WEB RTC
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const remoteStreamRef = useRef<MediaStream | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
   // For modal display when receiving a call
   const [showCallModal, setShowCallModal] = useState(false);
@@ -27,6 +27,20 @@ const Game = ({ userId }: { userId: string }) => {
   // For controlling audio/video
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  async function initLocalStream() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+      setLocalStream(stream);
+      console.log("Local stream acquired successfully");
+      return stream;
+    } catch (err) {
+      console.error("Error accessing camera/mic:", err);
+      return null;
+    }
+  }
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -36,6 +50,15 @@ const Game = ({ userId }: { userId: string }) => {
       query: { roomId: userId, playername: user?.username || "nice name" },
     });
     socketRef.current = socket; // To access this socket in the Form functions
+
+    //* stream init
+    // Immediately invoke async function to initialize stream
+    (async () => {
+      const stream = await initLocalStream();
+      if (!stream) {
+        console.error("Failed to initialize stream on component mount");
+      }
+    })();
 
     socket.on("chatMessage", (data: any) => {
       setMessages((prevMessages) => [
@@ -55,28 +78,30 @@ const Game = ({ userId }: { userId: string }) => {
     });
 
     //* Handle WEB RTC
-    socket.on("video-call-offer", ({ from }) => {
-      // Show modal, let user accept
+
+    socket.on("video-call-offer", ({ from }: any) => {
       setCallerId(from);
       setShowCallModal(true);
     });
 
-    // 4) (Optional) Listen for call-accepted
-    socket.on("call-accepted", async ({ from }) => {
-      // This is where the caller sets up the WebRTC offer, if you want a two-step flow
-      await setupCall(true, from);
+    socket.on("call-accepted", async ({ from }: any) => {
+      try {
+        let stream = localStream;
+        if (!stream) {
+          console.log("Getting new stream for call setup");
+          stream = await initLocalStream();
+          if (!stream) {
+            throw new Error("Could not acquire local stream");
+          }
+        }
+        await setupCall(true, from, stream);
+      } catch (err) {
+        console.error("Error in call-accepted:", err);
+        endCall();
+      }
     });
 
     // 5) Acquire camera/mic
-    navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
-      .then((stream) => {
-        localStreamRef.current = stream;
-      })
-      .catch((error) => {
-        alert("Please allow camera and mic to use the video call feature.");
-        console.error(error);
-      });
 
     async function initPhaser() {
       const Phaser = await import("phaser");
@@ -128,7 +153,14 @@ const Game = ({ userId }: { userId: string }) => {
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
       }
-      localStreamRef.current?.getTracks().forEach((track) => track.stop());
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+      }
+      if (remoteStream) {
+        remoteStream.getTracks().forEach((track) => track.stop());
+      }
+      setLocalStream(null);
+      setRemoteStream(null);
     };
   }, [isLoaded]);
   const updateMessage = (e: ChangeEvent<HTMLInputElement>) => {
@@ -156,7 +188,17 @@ const Game = ({ userId }: { userId: string }) => {
 
   //* WEB RTC FUNCTIONS
 
-  const setupCall = async (isCaller: boolean, targetId: string) => {
+  const setupCall = async (
+    isCaller: boolean,
+    targetId: string,
+    stream: MediaStream
+  ) => {
+    console.log("Setting up call as", isCaller ? "caller" : "receiver");
+    if (!stream) {
+      console.error("No media stream provided to setupCall");
+      return;
+    }
+
     // Create peer connection
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -164,27 +206,32 @@ const Game = ({ userId }: { userId: string }) => {
     peerConnectionRef.current = pc;
 
     // Add local stream to connection
-    if (localStreamRef.current) {
-      localStreamRef.current
-        .getTracks()
-        .forEach((track) => pc.addTrack(track, localStreamRef.current!));
-    }
-
-    // ICE handling
-    pc.onicecandidate = (event) => {
-      if (!event.candidate) return;
-      socketRef.current.emit("new-ice-candidate", {
-        target: targetId,
-        candidate: event.candidate,
-      });
-    };
+    stream.getTracks().forEach((track) => {
+      pc.addTrack(track, stream);
+    });
 
     // Remote stream
     pc.ontrack = (event) => {
-      remoteStreamRef.current = event.streams[0];
-      // Force re-render or trigger state to show the remote video
-      setShowCallModal(false); // hide call modal if it was open
-      // ...
+      console.log("Received remote stream", event.streams[0]?.id);
+      if (event.streams && event.streams[0]) {
+        setRemoteStream(event.streams[0]);
+        setShowCallModal(false); // hide call modal after stream is set
+      } else {
+        console.warn("Received track but no stream present");
+      }
+    };
+    // ICE handling
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socketRef.current?.emit("new-ice-candidate", {
+          target: targetId,
+          candidate: event.candidate,
+        });
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log("Connection state:", pc.connectionState);
     };
 
     // Listen for ICE from other side
@@ -228,13 +275,25 @@ const Game = ({ userId }: { userId: string }) => {
     });
   };
 
-  const acceptCall = () => {
+  const acceptCall = async () => {
     if (!callerId) return;
-    // Optional: let server know you accept
-    socketRef.current.emit("accept-video-call", { callerId });
-    // Set up call, acting as callee:
-    setupCall(false, callerId);
-    setShowCallModal(false);
+
+    try {
+      let stream = localStream;
+      if (!stream) {
+        console.log("Getting new stream for accepting call");
+        stream = await initLocalStream();
+        if (!stream) {
+          throw new Error("Could not acquire local stream");
+        }
+      }
+      await setupCall(false, callerId, stream);
+      socketRef.current?.emit("accept-video-call", { callerId });
+      setShowCallModal(false);
+    } catch (err) {
+      console.error("Error accepting call:", err);
+      endCall();
+    }
   };
 
   // Decline call
@@ -246,8 +305,8 @@ const Game = ({ userId }: { userId: string }) => {
 
   // Toggle audio
   const toggleMute = () => {
-    if (!localStreamRef.current) return;
-    localStreamRef.current.getAudioTracks().forEach((track) => {
+    if (!localStream) return;
+    localStream.getAudioTracks().forEach((track) => {
       track.enabled = !track.enabled;
     });
     setIsMuted(!isMuted);
@@ -255,8 +314,8 @@ const Game = ({ userId }: { userId: string }) => {
 
   // Toggle video
   const toggleVideo = () => {
-    if (!localStreamRef.current) return;
-    localStreamRef.current.getVideoTracks().forEach((track) => {
+    if (!localStream) return;
+    localStream.getVideoTracks().forEach((track) => {
       track.enabled = !track.enabled;
     });
     setIsVideoOff(!isVideoOff);
@@ -264,13 +323,14 @@ const Game = ({ userId }: { userId: string }) => {
 
   // End call
   const endCall = () => {
-    peerConnectionRef.current?.close();
-    peerConnectionRef.current = null;
-    remoteStreamRef.current = null;
-    setCallerId(null);
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+    setRemoteStream(null);
     setShowCallModal(false);
+    setCallerId(null);
   };
-
   //* FIXING SPACE-KEY OF ROOM CHAT INTERFIREING WITH SPACE-KEY OF GAME CONTROL
   const [isInputFocused, setIsInputFocused] = useState(false);
 
@@ -311,32 +371,47 @@ const Game = ({ userId }: { userId: string }) => {
         <div className="modal-overlay absolute top-1/4 bg-gray-600 flex items-center justify-center z-20 h-[50vh] w-[75vw]">
           <div className="modal-content">
             <p>Incoming call from {callerId}</p>
-            <button onClick={acceptCall}>Accept</button>
-            <button onClick={declineCall}>Decline</button>
+            <button
+              className="bg-green-500 px-4 py-2 mr-2 rounded"
+              onClick={acceptCall}
+            >
+              Accept
+            </button>
+            <button
+              className="bg-red-500 px-4 py-2 rounded"
+              onClick={declineCall}
+            >
+              Decline
+            </button>
           </div>
         </div>
       )}
-      {remoteStreamRef.current && (
-        <div className="modal-overlay absolute top-1/4 bg-gray-600 flex items-center justify-center z-20 h-[50vh] w-[75vw]">
+      {remoteStream && (
+        <div className="modal-overlay absolute top-1/4 bg-gray-600 flex items-center justify-center z-30 h-[50vh] w-[75vw]">
           <div className="modal-content flex justify-center items-center">
             {/* Remote video */}
             <video
-              className="w-1/2 h-full"
+              className="remote-video  w-1/2 max-h-[300px] object-cover z-40"
               autoPlay
+              muted
+              playsInline
               ref={(videoElem) => {
-                if (videoElem && remoteStreamRef.current) {
-                  videoElem.srcObject = remoteStreamRef.current;
+                if (videoElem && remoteStream) {
+                  videoElem.srcObject = remoteStream;
+                  //*
+                  videoElem.load();
                 }
               }}
             />
             {/* Local video */}
             <video
-              className="w-1/2 h-full"
+              className="w-1/2 max-h-[300px] object-cover z-40"
               autoPlay
               muted
+              playsInline
               ref={(localVid) => {
-                if (localVid && localStreamRef.current) {
-                  localVid.srcObject = localStreamRef.current;
+                if (localVid && localStream) {
+                  localVid.srcObject = localStream;
                 }
               }}
             />
