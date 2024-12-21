@@ -1,11 +1,8 @@
 "use client";
 import Game from "@/components/Game";
 import { useParams } from "next/navigation";
-// import Room from "@/components/Room";
+
 import { useUser } from "@clerk/nextjs";
-import { useState, useEffect, ChangeEvent, useRef, FormEvent } from "react";
-import Chat from "@/components/Chat";
-import io from "socket.io-client";
 
 function Page() {
   const params = useParams<{ userId: string; tag: string; item: string }>();
