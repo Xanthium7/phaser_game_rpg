@@ -19,7 +19,7 @@ const Game = ({ userId }: { userId: string }) => {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   // For modal display when receiving a call
   const [showCallModal, setShowCallModal] = useState(false);
   const [callerId, setCallerId] = useState<string | null>(null);
@@ -41,6 +41,271 @@ const Game = ({ userId }: { userId: string }) => {
       return null;
     }
   }
+
+  const setupCall = async (
+    isCaller: boolean,
+    targetId: string,
+    stream: MediaStream
+  ) => {
+    console.log("Setting up call as", isCaller ? "caller" : "receiver");
+    if (!stream) {
+      console.error("No media stream provided to setupCall");
+      return;
+    }
+
+    // Create peer connection
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        {
+          urls: [
+            "stun:stun.l.google.com:19302",
+            "stun:golbal.stun.twilio.com:3478",
+          ],
+        },
+        // { urls: "stun:stun.l.google.com:5349" },
+        // { urls: "stun:stun1.l.google.com:3478" },
+        // { urls: "stun:stun1.l.google.com:5349" },
+        // { urls: "stun:stun2.l.google.com:19302" },
+        // { urls: "stun:stun2.l.google.com:5349" },
+        // { urls: "stun:stun3.l.google.com:3478" },
+        // { urls: "stun:stun3.l.google.com:5349" },
+        // { urls: "stun:stun4.l.google.com:19302" },
+        // { urls: "stun:stun4.l.google.com:5349" },
+
+        {
+          urls: "turn:global.relay.metered.ca:80",
+          username: "705d56559d98589d7623749e",
+          credential: "RwwCgdm+kUwAB+K4",
+        },
+        {
+          urls: "turn:global.relay.metered.ca:80?transport=tcp",
+          username: "705d56559d98589d7623749e",
+          credential: "RwwCgdm+kUwAB+K4",
+        },
+      ],
+      iceTransportPolicy: "all",
+    });
+    peerConnectionRef.current = pc;
+
+    // Add local stream to connection
+    stream.getTracks().forEach((track) => {
+      pc.addTrack(track, stream);
+    });
+    // // Initialize a new remote stream
+    // const newRemoteStream = new MediaStream();
+
+    // // Event Handlers
+    // const handleTrack = (event: RTCTrackEvent) => {
+    //   console.log("Received remote track", event.track);
+    //   newRemoteStream.addTrack(event.track);
+    //   console.log("Remote stream tracks:", newRemoteStream.getTracks());
+    //   setRemoteStream(newRemoteStream);
+    // };
+
+    // const handleIceCandidate = (event: RTCPeerConnectionIceEvent) => {
+    //   if (event.candidate) {
+    //     console.log("Sending ICE candidate:", event.candidate);
+    //     socketRef.current?.emit("new-ice-candidate", {
+    //       target: targetId,
+    //       candidate: event.candidate,
+    //     });
+    //   } else {
+    //     console.log("ICE gathering completed");
+    //   }
+    // };
+
+    // const handleIceGatheringStateChange = () => {
+    //   console.log("ICE gathering state:", pc.iceGatheringState);
+    // };
+
+    // const handleIceConnectionStateChange = () => {
+    //   console.log("ICE connection state:", pc.iceConnectionState);
+    // };
+
+    // const handleConnectionStateChange = () => {
+    //   console.log("Connection state:", pc.connectionState);
+    // };
+
+    // // Attach event listeners
+    // pc.ontrack = handleTrack;
+    // pc.onicecandidate = handleIceCandidate;
+    // pc.onicegatheringstatechange = handleIceGatheringStateChange;
+    // pc.oniceconnectionstatechange = handleIceConnectionStateChange;
+    // pc.onconnectionstatechange = () => {
+    //   console.log("Connection state:", pc.connectionState);
+    //   if (
+    //     pc.connectionState === "disconnected" ||
+    //     pc.connectionState === "failed" ||
+    //     pc.connectionState === "closed"
+    //   ) {
+    //     console.log("Connection state indicates call end. Ending call.");
+    //     endCall();
+    //   }
+    // };
+
+    // // Handle ICE candidates received from the server
+    // const handleNewIceCandidate = async (data: any) => {
+    //   if (!pc) return;
+
+    //   if (pc.signalingState === "closed") {
+    //     console.warn("RTCPeerConnection is closed. Cannot add ICE candidate.");
+    //     return;
+    //   }
+
+    //   try {
+    //     const candidate = new RTCIceCandidate(data.candidate);
+    //     await pc.addIceCandidate(candidate);
+    //     console.log("Added received ICE candidate:", candidate.candidate);
+    //   } catch (err) {
+    //     console.error("Error adding received ICE candidate:", err);
+    //   }
+    // };
+
+    // socketRef.current.on("new-ice-candidate", handleNewIceCandidate);
+
+    // ICE handling
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        console.log("Sending ICE candidate:", event.candidate);
+        socketRef.current?.emit("new-ice-candidate", {
+          target: targetId,
+          candidate: event.candidate,
+        });
+      } else {
+        console.log("ICE gathering NULL THINGY");
+      }
+    };
+
+    pc.onicegatheringstatechange = () => {
+      console.log("ICE gathering state:", pc.iceGatheringState);
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log("Connection state:", pc.connectionState);
+      if (
+        pc.connectionState === "disconnected" ||
+        pc.connectionState === "failed" ||
+        pc.connectionState === "closed"
+      ) {
+        console.log("Connection state indicates call end. Ending call.");
+        endCall();
+      }
+    };
+
+    socketRef.current.on("new-ice-candidate", async (data: any) => {
+      if (!pc) return;
+      if (pc.signalingState === "closed") {
+        console.warn(
+          "Attempted to add ICE candidate after connection was closed."
+        );
+        return;
+      }
+      try {
+        if (data.candidate) {
+          console.log("Received ICE candidate:", data.candidate);
+          const candidate = new RTCIceCandidate(data.candidate);
+          await pc.addIceCandidate(candidate);
+        }
+      } catch (err) {
+        console.error("Error adding received ice candidate", err);
+      }
+    });
+
+    // pc.onconnectionstatechange = () => {
+    //   console.log("Connection state:", pc.connectionState);
+    // };
+
+    // Remote stream
+    const remoteStream = new MediaStream();
+    pc.ontrack = (event) => {
+      console.log("Received remote track", event.track);
+      remoteStream.addTrack(event.track);
+      console.log("Remote stream tracks:", remoteStream.getTracks());
+
+      setRemoteStream(remoteStream);
+      console.log("Remote stream INIF ", remoteStream);
+    };
+    // pc.ontrack = (event) => {
+    //   console.log(
+    //     "Received remote track",
+    //     event.track.kind,
+    //     event.track.readyState
+    //   );
+    //   const [remoteStream] = event.streams;
+    //   console.log("Remote stream :", remoteStream);
+    //   if (remoteStream) {
+    //     console.log("Remote stream ID:", remoteStream.id);
+    //     console.log("Track count:", remoteStream.getTracks().length);
+    //     console.log(
+    //       "Tracks:",
+    //       remoteStream.getTracks().map((t) => t.kind)
+    //     );
+    //     setRemoteStream(remoteStream);
+    //   }
+    // };
+
+    // Offer/Answer
+    if (isCaller) {
+      // Create offer
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socketRef.current.emit("video-offer", { target: targetId, sdp: offer });
+    } else {
+      // Wait for offer, then create answer
+      socketRef.current.on("video-offer", async (data: any) => {
+        if (!pc.currentRemoteDescription && data.sdp) {
+          await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          socketRef.current.emit("video-answer", {
+            target: data.sender,
+            sdp: answer,
+          });
+        }
+      });
+    }
+
+    // Listen for “video-answer”
+    socketRef.current.on("video-answer", async (data: any) => {
+      if (pc && data.sdp && !pc.currentRemoteDescription) {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+      }
+    });
+
+    return pc;
+  };
+
+  useEffect(() => {
+    if (remoteStream && remoteVideoRef.current) {
+      const checkStreamActive = () => {
+        if (remoteStream.active) {
+          console.log(
+            "Setting remote stream to video element",
+            remoteStream.id
+          );
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = remoteStream;
+            console.log("Remote stream SRC OBJECT SET ID:", remoteStream.id);
+          }
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current
+              .play()
+              .catch((err) => console.log("Error playing remote stream:", err));
+          }
+        } else {
+          console.warn("Remote stream is not active yet, retrying...");
+          setTimeout(checkStreamActive, 100);
+        }
+      };
+      checkStreamActive();
+    }
+
+    return () => {
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = null;
+      }
+    };
+  }, [remoteStream]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -100,8 +365,6 @@ const Game = ({ userId }: { userId: string }) => {
         endCall();
       }
     });
-
-    // 5) Acquire camera/mic
 
     async function initPhaser() {
       const Phaser = await import("phaser");
@@ -188,103 +451,6 @@ const Game = ({ userId }: { userId: string }) => {
 
   //* WEB RTC FUNCTIONS
 
-  const setupCall = async (
-    isCaller: boolean,
-    targetId: string,
-    stream: MediaStream
-  ) => {
-    console.log("Setting up call as", isCaller ? "caller" : "receiver");
-    if (!stream) {
-      console.error("No media stream provided to setupCall");
-      return;
-    }
-
-    // Create peer connection
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-    });
-    peerConnectionRef.current = pc;
-
-    // Add local stream to connection
-    stream.getTracks().forEach((track) => {
-      pc.addTrack(track, stream);
-    });
-
-    // Remote stream
-    pc.ontrack = (event) => {
-      console.log("Received remote track", event.streams[0]);
-      if (event.streams && event.streams[0]) {
-        setRemoteStream(event.streams[0]);
-        // Force update of video element
-        const videoElement = document.querySelector(
-          ".remote-video"
-        ) as HTMLVideoElement;
-        if (videoElement) {
-          videoElement.srcObject = event.streams[0];
-          videoElement
-            .play()
-            .catch((err) => console.error("Error playing remote stream:", err));
-        }
-      } else {
-        console.warn("Received track but no stream present");
-      }
-    };
-
-    // ICE handling
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        socketRef.current?.emit("new-ice-candidate", {
-          target: targetId,
-          candidate: event.candidate,
-        });
-      }
-    };
-
-    pc.onconnectionstatechange = () => {
-      console.log("Connection state:", pc.connectionState);
-    };
-
-    // Listen for ICE from other side
-    socketRef.current.on("new-ice-candidate", async (data: any) => {
-      if (!pc) return;
-      try {
-        if (data.candidate) {
-          await pc.addIceCandidate(data.candidate);
-        }
-      } catch (err) {
-        console.error("Error adding received ice candidate", err);
-      }
-    });
-
-    // Offer/Answer
-    if (isCaller) {
-      // Create offer
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      socketRef.current.emit("video-offer", { target: targetId, sdp: offer });
-    } else {
-      // Wait for offer, then create answer
-      socketRef.current.on("video-offer", async (data: any) => {
-        if (!pc.currentRemoteDescription && data.sdp) {
-          await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          socketRef.current.emit("video-answer", {
-            target: data.sender,
-            sdp: answer,
-          });
-        }
-      });
-    }
-
-    // Listen for “video-answer”
-    socketRef.current.on("video-answer", async (data: any) => {
-      if (pc && data.sdp && !pc.currentRemoteDescription) {
-        await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-      }
-    });
-  };
-
   const acceptCall = async () => {
     if (!callerId) return;
 
@@ -334,15 +500,24 @@ const Game = ({ userId }: { userId: string }) => {
   // End call
   const endCall = () => {
     if (peerConnectionRef.current) {
+      peerConnectionRef.current.onicecandidate = null;
+      peerConnectionRef.current.ontrack = null;
+      peerConnectionRef.current.onicegatheringstatechange = null;
+      peerConnectionRef.current.oniceconnectionstatechange = null;
+      peerConnectionRef.current.onconnectionstatechange = null;
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
-    if (localStream) {
-      localStream.getTracks().forEach((track) => track.stop());
-    }
+    // if (localStream) {
+    //   localStream.getTracks().forEach((track) => track.stop());
+    // }
     if (remoteStream) {
       remoteStream.getTracks().forEach((track) => track.stop());
     }
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
+
     setRemoteStream(null);
     setShowCallModal(false);
     setCallerId(null);
@@ -407,19 +582,10 @@ const Game = ({ userId }: { userId: string }) => {
           <div className="modal-content flex justify-center items-center">
             {/* Remote video */}
             <video
-              className="remote-video  w-1/2 max-h-[300px] object-cover z-40"
+              className="remote-video border w-1/2 max-h-[300px] object-cover z-40"
               autoPlay
               playsInline
-              ref={(videoElem) => {
-                if (videoElem && remoteStream) {
-                  console.log(
-                    "Setting remote stream to video element",
-                    remoteStream.id
-                  );
-                  videoElem.srcObject = remoteStream;
-                  videoElem.load();
-                }
-              }}
+              ref={remoteVideoRef}
             />
             {/* Local video */}
             <video
