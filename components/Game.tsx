@@ -212,14 +212,24 @@ const Game = ({ userId }: { userId: string }) => {
 
     // Remote stream
     pc.ontrack = (event) => {
-      console.log("Received remote stream", event.streams[0]?.id);
+      console.log("Received remote track", event.streams[0]);
       if (event.streams && event.streams[0]) {
         setRemoteStream(event.streams[0]);
-        setShowCallModal(false); // hide call modal after stream is set
+        // Force update of video element
+        const videoElement = document.querySelector(
+          ".remote-video"
+        ) as HTMLVideoElement;
+        if (videoElement) {
+          videoElement.srcObject = event.streams[0];
+          videoElement
+            .play()
+            .catch((err) => console.error("Error playing remote stream:", err));
+        }
       } else {
         console.warn("Received track but no stream present");
       }
     };
+
     // ICE handling
     pc.onicecandidate = (event) => {
       if (event.candidate) {
@@ -327,6 +337,12 @@ const Game = ({ userId }: { userId: string }) => {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
+    if (localStream) {
+      localStream.getTracks().forEach((track) => track.stop());
+    }
+    if (remoteStream) {
+      remoteStream.getTracks().forEach((track) => track.stop());
+    }
     setRemoteStream(null);
     setShowCallModal(false);
     setCallerId(null);
@@ -393,12 +409,14 @@ const Game = ({ userId }: { userId: string }) => {
             <video
               className="remote-video  w-1/2 max-h-[300px] object-cover z-40"
               autoPlay
-              muted
               playsInline
               ref={(videoElem) => {
                 if (videoElem && remoteStream) {
+                  console.log(
+                    "Setting remote stream to video element",
+                    remoteStream.id
+                  );
                   videoElem.srcObject = remoteStream;
-                  //*
                   videoElem.load();
                 }
               }}
@@ -416,14 +434,29 @@ const Game = ({ userId }: { userId: string }) => {
               }}
             />
 
-            <div>
-              <button onClick={toggleMute}>
+            <div className="controls flex justify-center gap-4">
+              <button
+                className={`px-4 py-2 rounded ${
+                  isMuted ? "bg-red-500" : "bg-green-500"
+                }`}
+                onClick={toggleMute}
+              >
                 {isMuted ? "Unmute" : "Mute"}
               </button>
-              <button onClick={toggleVideo}>
+              <button
+                className={`px-4 py-2 rounded ${
+                  isVideoOff ? "bg-red-500" : "bg-green-500"
+                }`}
+                onClick={toggleVideo}
+              >
                 {isVideoOff ? "Video On" : "Video Off"}
               </button>
-              <button onClick={endCall}>End Call</button>
+              <button
+                className="bg-red-500 px-4 py-2 rounded"
+                onClick={endCall}
+              >
+                End Call
+              </button>
             </div>
           </div>
         </div>
