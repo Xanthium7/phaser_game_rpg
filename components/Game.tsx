@@ -47,6 +47,14 @@ const Game = ({ userId }: { userId: string }) => {
     targetId: string,
     stream: MediaStream
   ) => {
+    //* stream init
+    // Immediately invoke async function to initialize stream
+    (async () => {
+      const stream = await initLocalStream();
+      if (!stream) {
+        console.error("Failed to initialize stream on component mount");
+      }
+    })();
     console.log("Setting up call as", isCaller ? "caller" : "receiver");
     if (!stream) {
       console.error("No media stream provided to setupCall");
@@ -82,77 +90,6 @@ const Game = ({ userId }: { userId: string }) => {
     stream.getTracks().forEach((track) => {
       pc.addTrack(track, stream);
     });
-    // // Initialize a new remote stream
-    // const newRemoteStream = new MediaStream();
-
-    // // Event Handlers
-    // const handleTrack = (event: RTCTrackEvent) => {
-    //   console.log("Received remote track", event.track);
-    //   newRemoteStream.addTrack(event.track);
-    //   console.log("Remote stream tracks:", newRemoteStream.getTracks());
-    //   setRemoteStream(newRemoteStream);
-    // };
-
-    // const handleIceCandidate = (event: RTCPeerConnectionIceEvent) => {
-    //   if (event.candidate) {
-    //     console.log("Sending ICE candidate:", event.candidate);
-    //     socketRef.current?.emit("new-ice-candidate", {
-    //       target: targetId,
-    //       candidate: event.candidate,
-    //     });
-    //   } else {
-    //     console.log("ICE gathering completed");
-    //   }
-    // };
-
-    // const handleIceGatheringStateChange = () => {
-    //   console.log("ICE gathering state:", pc.iceGatheringState);
-    // };
-
-    // const handleIceConnectionStateChange = () => {
-    //   console.log("ICE connection state:", pc.iceConnectionState);
-    // };
-
-    // const handleConnectionStateChange = () => {
-    //   console.log("Connection state:", pc.connectionState);
-    // };
-
-    // // Attach event listeners
-    // pc.ontrack = handleTrack;
-    // pc.onicecandidate = handleIceCandidate;
-    // pc.onicegatheringstatechange = handleIceGatheringStateChange;
-    // pc.oniceconnectionstatechange = handleIceConnectionStateChange;
-    // pc.onconnectionstatechange = () => {
-    //   console.log("Connection state:", pc.connectionState);
-    //   if (
-    //     pc.connectionState === "disconnected" ||
-    //     pc.connectionState === "failed" ||
-    //     pc.connectionState === "closed"
-    //   ) {
-    //     console.log("Connection state indicates call end. Ending call.");
-    //     endCall();
-    //   }
-    // };
-
-    // // Handle ICE candidates received from the server
-    // const handleNewIceCandidate = async (data: any) => {
-    //   if (!pc) return;
-
-    //   if (pc.signalingState === "closed") {
-    //     console.warn("RTCPeerConnection is closed. Cannot add ICE candidate.");
-    //     return;
-    //   }
-
-    //   try {
-    //     const candidate = new RTCIceCandidate(data.candidate);
-    //     await pc.addIceCandidate(candidate);
-    //     console.log("Added received ICE candidate:", candidate.candidate);
-    //   } catch (err) {
-    //     console.error("Error adding received ICE candidate:", err);
-    //   }
-    // };
-
-    // socketRef.current.on("new-ice-candidate", handleNewIceCandidate);
 
     // ICE handling
     pc.onicecandidate = (event) => {
@@ -202,10 +139,6 @@ const Game = ({ userId }: { userId: string }) => {
       }
     });
 
-    // pc.onconnectionstatechange = () => {
-    //   console.log("Connection state:", pc.connectionState);
-    // };
-
     // Remote stream
     const remoteStream = new MediaStream();
     pc.ontrack = (event) => {
@@ -216,24 +149,6 @@ const Game = ({ userId }: { userId: string }) => {
       setRemoteStream(remoteStream);
       console.log("Remote stream INIF ", remoteStream);
     };
-    // pc.ontrack = (event) => {
-    //   console.log(
-    //     "Received remote track",
-    //     event.track.kind,
-    //     event.track.readyState
-    //   );
-    //   const [remoteStream] = event.streams;
-    //   console.log("Remote stream :", remoteStream);
-    //   if (remoteStream) {
-    //     console.log("Remote stream ID:", remoteStream.id);
-    //     console.log("Track count:", remoteStream.getTracks().length);
-    //     console.log(
-    //       "Tracks:",
-    //       remoteStream.getTracks().map((t) => t.kind)
-    //     );
-    //     setRemoteStream(remoteStream);
-    //   }
-    // };
 
     // Offer/Answer
     if (isCaller) {
@@ -306,15 +221,6 @@ const Game = ({ userId }: { userId: string }) => {
       query: { roomId: userId, playername: user?.username || "nice name" },
     });
     socketRef.current = socket; // To access this socket in the Form functions
-
-    //* stream init
-    // Immediately invoke async function to initialize stream
-    (async () => {
-      const stream = await initLocalStream();
-      if (!stream) {
-        console.error("Failed to initialize stream on component mount");
-      }
-    })();
 
     socket.on("chatMessage", (data: any) => {
       setMessages((prevMessages) => [
@@ -499,9 +405,9 @@ const Game = ({ userId }: { userId: string }) => {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
-    // if (localStream) {
-    //   localStream.getTracks().forEach((track) => track.stop());
-    // }
+    if (localStream) {
+      localStream.getTracks().forEach((track) => track.stop());
+    }
     if (remoteStream) {
       remoteStream.getTracks().forEach((track) => track.stop());
     }
