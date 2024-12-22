@@ -40,6 +40,8 @@ const Game = ({ userId }: { userId: string }) => {
   const [showCallModal, setShowCallModal] = useState(false);
   const [callerId, setCallerId] = useState<string | null>(null);
 
+  const [callerName, setCallerName] = useState<string | null>(null);
+
   // For controlling audio/video
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -112,10 +114,11 @@ const Game = ({ userId }: { userId: string }) => {
       }
     };
 
-    pc.onicegatheringstatechange = () => {
-      console.log("ICE gathering state:", pc.iceGatheringState);
-    };
+    // pc.onicegatheringstatechange = () => {
+    //   console.log("ICE gathering state:", pc.iceGatheringState);
+    // };
 
+    // Part of a Bug fix
     pc.onconnectionstatechange = () => {
       console.log("Connection state:", pc.connectionState);
       if (
@@ -130,6 +133,8 @@ const Game = ({ userId }: { userId: string }) => {
 
     socketRef.current.on("new-ice-candidate", async (data: any) => {
       if (!pc) return;
+
+      // This part fixes an erro where During a second call a new ICE wanst getting created
       if (pc.signalingState === "closed") {
         console.warn(
           "Attempted to add ICE candidate after connection was closed."
@@ -249,8 +254,9 @@ const Game = ({ userId }: { userId: string }) => {
 
     //* Handle WEB RTC
 
-    socket.on("video-call-offer", ({ from }: any) => {
+    socket.on("video-call-offer", ({ from, name }: any) => {
       setCallerId(from);
+      setCallerName(name);
       setShowCallModal(true);
     });
 
@@ -365,10 +371,10 @@ const Game = ({ userId }: { userId: string }) => {
         console.log("Getting new stream for accepting call");
         stream = await initLocalStream();
         if (!stream) {
-          throw new Error("Could not acquire local stream");
+          return;
         }
       }
-      await setupCall(false, callerId, stream);
+      await setupCall(false, callerId, stream); // as reciever
       socketRef.current?.emit("accept-video-call", { callerId });
       setShowCallModal(false);
     } catch (err) {
@@ -464,14 +470,15 @@ const Game = ({ userId }: { userId: string }) => {
         className="overflow-hidden flex justify-center  h-screen w-screen bg-black"
       ></div>
       <AlertDialog
-        open={showCallModal && !!callerId}
+        open={showCallModal && !!callerId} // callerId is converted to its boolean equivalent
         onOpenChange={setShowCallModal}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Incoming Call</AlertDialogTitle>
             <AlertDialogDescription>
-              You have an incoming call from {callerId}.
+              You have an incoming call from{" "}
+              <span className="font-bold">{callerName}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

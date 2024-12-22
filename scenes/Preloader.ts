@@ -50,6 +50,11 @@ export default class Preloader extends Scene {
 
     this.input.keyboard?.removeCapture(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
+    //* Video call trigger
+    this.input.keyboard!.on("keydown-F4", () => {
+      this.handleVideoCall();
+    });
+
     // Set the starting position
     const startPosition = { x: 130, y: 80 };
 
@@ -64,10 +69,6 @@ export default class Preloader extends Scene {
           startPosition: startPosition,
         },
       ],
-    });
-
-    this.input.keyboard!.on("keydown-P", () => {
-      this.handleVideoCall();
     });
 
     // Set up movement event listeners
@@ -104,9 +105,8 @@ export default class Preloader extends Scene {
 
     // Handle keyboard input
     this.cursors = this.input.keyboard!.createCursorKeys();
-    // Request the current players from the server
+
     this.socket.emit("getCurrentPlayers");
-    // Setup multiplayer events
     this.setupMultiplayerEvents();
 
     // Handle player movement
@@ -128,13 +128,11 @@ export default class Preloader extends Scene {
   }
 
   private handleVideoCall(): void {
-    // Current player’s ID, position, and facing direction
     const currentPlayerId = this.socket.id;
     const facingDirection = this.gridEngine.getFacingDirection(currentPlayerId);
     const currentPosition = this.gridEngine.getPosition(currentPlayerId);
 
-    // Compute the tile in front of the player
-    const targetPosition = { ...currentPosition };
+    const targetPosition = { ...currentPosition }; // Copy the current position
     switch (facingDirection) {
       case "up":
         targetPosition.y -= 1;
