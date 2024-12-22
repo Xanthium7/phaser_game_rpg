@@ -152,7 +152,7 @@ const Game = ({ userId }: { userId: string }) => {
       }
     });
 
-    // Remote stream
+    // Handling the incoming Stream
     const remoteStream = new MediaStream();
     pc.ontrack = (event) => {
       console.log("Received remote track", event.track);
