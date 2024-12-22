@@ -6,6 +6,22 @@ import { useUser } from "@clerk/nextjs";
 import { MdContentCopy } from "react-icons/md";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { AiOutlineAudioMuted } from "react-icons/ai";
+import { IoVideocamOffOutline } from "react-icons/io5";
+import { MdCallEnd } from "react-icons/md";
+import { FaVideo } from "react-icons/fa";
+import { FaMicrophone } from "react-icons/fa6";
 
 const Game = ({ userId }: { userId: string }) => {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -47,14 +63,6 @@ const Game = ({ userId }: { userId: string }) => {
     targetId: string,
     stream: MediaStream
   ) => {
-    //* stream init
-    // Immediately invoke async function to initialize stream
-    (async () => {
-      const stream = await initLocalStream();
-      if (!stream) {
-        console.error("Failed to initialize stream on component mount");
-      }
-    })();
     console.log("Setting up call as", isCaller ? "caller" : "receiver");
     if (!stream) {
       console.error("No media stream provided to setupCall");
@@ -407,6 +415,7 @@ const Game = ({ userId }: { userId: string }) => {
     }
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
+      setLocalStream(null);
     }
     if (remoteStream) {
       remoteStream.getTracks().forEach((track) => track.stop());
@@ -454,39 +463,50 @@ const Game = ({ userId }: { userId: string }) => {
         id="game-content"
         className="overflow-hidden flex justify-center  h-screen w-screen bg-black"
       ></div>
-
-      {showCallModal && callerId && (
-        <div className="modal-overlay absolute top-1/4 bg-gray-600 flex items-center justify-center z-20 h-[50vh] w-[75vw]">
-          <div className="modal-content">
-            <p>Incoming call from {callerId}</p>
-            <button
-              className="bg-green-500 px-4 py-2 mr-2 rounded"
-              onClick={acceptCall}
-            >
-              Accept
-            </button>
-            <button
-              className="bg-red-500 px-4 py-2 rounded"
+      <AlertDialog
+        open={showCallModal && !!callerId}
+        onOpenChange={setShowCallModal}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Incoming Call</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have an incoming call from {callerId}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="text-[#b63434] border-[#b63434] hover:bg-[#b63434] hover:text-white"
               onClick={declineCall}
             >
               Decline
-            </button>
-          </div>
-        </div>
-      )}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-green-500 hover:bg-green-700 "
+              onClick={() => {
+                acceptCall();
+                setShowCallModal(false);
+              }}
+            >
+              Accept
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {remoteStream && (
-        <div className="modal-overlay absolute top-1/4 bg-gray-600 flex items-center justify-center z-30 h-[50vh] w-[75vw]">
-          <div className="modal-content flex justify-center items-center">
+        <div className="modal-overlay absolute top-0 left-0 w-full h-full bg-gray-600 bg-opacity-75 flex items-center justify-center z-30">
+          <div className="modal-content rounded-xl bg-white p-4  shadow-lg flex flex-col items-center">
             {/* Remote video */}
             <video
-              className="remote-video border w-1/2 max-h-[300px] object-cover z-40"
+              className="remote-video rounded-xl border w-full max-h-[300px] object-cover mb-4"
               autoPlay
               playsInline
               ref={remoteVideoRef}
             />
             {/* Local video */}
             <video
-              className="w-1/2 max-h-[300px] object-cover z-40"
+              className="w-full rounded-xl max-h-[300px] object-cover mb-4"
               autoPlay
               muted
               playsInline
@@ -504,7 +524,11 @@ const Game = ({ userId }: { userId: string }) => {
                 }`}
                 onClick={toggleMute}
               >
-                {isMuted ? "Unmute" : "Mute"}
+                {isMuted ? (
+                  <AiOutlineAudioMuted className="text-white" />
+                ) : (
+                  <FaMicrophone className="text-white" />
+                )}
               </button>
               <button
                 className={`px-4 py-2 rounded ${
@@ -512,13 +536,17 @@ const Game = ({ userId }: { userId: string }) => {
                 }`}
                 onClick={toggleVideo}
               >
-                {isVideoOff ? "Video On" : "Video Off"}
+                {isVideoOff ? (
+                  <IoVideocamOffOutline className="text-white" />
+                ) : (
+                  <FaVideo className="text-white" />
+                )}
               </button>
               <button
                 className="bg-red-500 px-4 py-2 rounded"
                 onClick={endCall}
               >
-                End Call
+                <MdCallEnd className="text-white" />
               </button>
             </div>
           </div>
