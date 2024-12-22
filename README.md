@@ -82,8 +82,7 @@ https://appflowy.com/2148cd58-453e-4f2e-af08-21d317bc30be/Untitled-ffccec75-fa91
   ![image](https://github.com/user-attachments/assets/1d247e63-4b22-46cc-b835-3538d2a0e2b2)
 - Spend a long while debugging cause NAT and fireWALL protection required the need for TURN servers and I was just using google and twilio STUn servers,
 - TURN SERVER THAT I USED: https://www.metered.ca/stun-turn (Yes the 500Mb free plan)
-
-Ill also add the WEB RTC flow in my project, (incase its confusing)
+- Ill also add the WEB RTC flow in my project, (incase its confusing)
 ![image](https://github.com/user-attachments/assets/49ada6d6-c1f9-4a51-bdb5-d169ed05ff42)
 
 
