@@ -518,8 +518,8 @@ const Game = ({ userId }: { userId: string }) => {
             />
 
             <div className="controls flex justify-center gap-4">
-              <button
-                className={`px-4 py-2 rounded ${
+              <div
+                className={`px-4 py-2 rounded  cursor-pointer hover:opacity-75  ${
                   isMuted ? "bg-red-500" : "bg-green-500"
                 }`}
                 onClick={toggleMute}
@@ -529,9 +529,9 @@ const Game = ({ userId }: { userId: string }) => {
                 ) : (
                   <FaMicrophone className="text-white" />
                 )}
-              </button>
-              <button
-                className={`px-4 py-2 rounded ${
+              </div>
+              <div
+                className={`px-4 py-2 rounded  cursor-pointer hover:opacity-75  ${
                   isVideoOff ? "bg-red-500" : "bg-green-500"
                 }`}
                 onClick={toggleVideo}
@@ -541,13 +541,13 @@ const Game = ({ userId }: { userId: string }) => {
                 ) : (
                   <FaVideo className="text-white" />
                 )}
-              </button>
-              <button
-                className="bg-red-500 px-4 py-2 rounded"
+              </div>
+              <div
+                className="bg-red-500 px-4 py-2 rounded cursor-pointer hover:opacity-75  "
                 onClick={endCall}
               >
                 <MdCallEnd className="text-white" />
-              </button>
+              </div>
             </div>
           </div>
         </div>
