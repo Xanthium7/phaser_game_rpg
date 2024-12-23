@@ -191,7 +191,7 @@ export default class Preloader extends Scene {
       (targetPosition.x === 81 && targetPosition.y === 88) ||
       (targetPosition.x === 82 && targetPosition.y === 88)
     ) {
-      alert("Set some cool tunes here");
+      this.showJukeBoxModal();
     }
     if (
       (targetPosition.x === 21 && targetPosition.y === 107) ||
@@ -202,6 +202,10 @@ export default class Preloader extends Scene {
     ) {
       alert("This looks a bit... SUS..");
     }
+  }
+
+  private showJukeBoxModal() {
+    this.socket.emit("showJukeboxModal");
   }
 
   // ANIAMTION LOGIC
@@ -364,7 +368,7 @@ export default class Preloader extends Scene {
     });
 
     if (!this.gridEngine.hasCharacter(playerId)) {
-      console.log(`Character with ID ${playerId} does not exist in GridEngine`);
+      // console.log(`Character with ID ${playerId} does not exist in GridEngine`);
       return;
     }
     // **Check if chat input is focused**

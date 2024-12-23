@@ -6,6 +6,7 @@ import { useUser } from "@clerk/nextjs";
 import { MdContentCopy } from "react-icons/md";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import YouTube, { YouTubePlayer } from "react-youtube";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +23,7 @@ import { IoVideocamOffOutline } from "react-icons/io5";
 import { MdCallEnd } from "react-icons/md";
 import { FaVideo } from "react-icons/fa";
 import { FaMicrophone } from "react-icons/fa6";
+import { Button } from "./ui/button";
 
 const Game = ({ userId }: { userId: string }) => {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -39,12 +41,16 @@ const Game = ({ userId }: { userId: string }) => {
   // For modal display when receiving a call
   const [showCallModal, setShowCallModal] = useState(false);
   const [callerId, setCallerId] = useState<string | null>(null);
-
   const [callerName, setCallerName] = useState<string | null>(null);
-
   // For controlling audio/video
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+
+  //* JUKEBOX
+  const [isJukeboxModalOpen, setIsJukeboxModalOpen] = useState(false);
+  const [playlistLink, setPlaylistLink] = useState("");
+  const playerRef = useRef<YouTubePlayer | null>(null);
+
   async function initLocalStream() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -193,7 +199,7 @@ const Game = ({ userId }: { userId: string }) => {
 
     return pc;
   };
-
+  // for seetiing the remote video ref to video ele
   useEffect(() => {
     if (remoteStream && remoteVideoRef.current) {
       const checkStreamActive = () => {
@@ -291,6 +297,78 @@ const Game = ({ userId }: { userId: string }) => {
     //   });
     // });
 
+    //* HANDLE JUKEBOX
+    socket.on("showJukeboxModal", () => {
+      setIsJukeboxModalOpen(true);
+    });
+
+    socket.on("playPlaylist", ({ playlistLink }: any) => {
+      console.log("Received playPlaylist event with link:", playlistLink);
+      // console.log("Type of playlistLink:", typeof playlistLink);
+      // if (typeof playlistLink !== "string") {
+      //   console.error("Invalid playlistLink type:", typeof playlistLink);
+      //   return;
+      // }
+      setPlaylistLink(playlistLink);
+      if (playerRef.current) {
+        const playlistId = extractYouTubePlaylistID(playlistLink);
+        if (playlistId) {
+          console.log("Loading playlist with ID:", playlistId);
+          playerRef.current.loadPlaylist({
+            list: playlistId,
+            listType: "playlist",
+            playerVars: {
+              autoplay: 1,
+              controls: 0,
+              disablekb: 1,
+              modestbranding: 1,
+              origin: window.location.origin,
+              rel: 0,
+            },
+          });
+          // Explicitly play after loading
+          playerRef.current.playVideo();
+          console.log("Triggered playVideo on the player.");
+        } else {
+          console.error("Invalid playlist ID extracted.");
+        }
+      } else {
+        console.error("YouTube player is not ready.");
+      }
+    });
+    socket.on("pausePlaylist", () => {
+      console.log("Received pausePlaylist event");
+      if (playerRef.current) {
+        playerRef.current.pauseVideo();
+        console.log("Paused the YouTube player.");
+      } else {
+        console.error("YouTube player is not ready.");
+      }
+    });
+    socket.on("resumePlaylist", () => {
+      console.log("Received resumePlaylist event");
+      playerRef.current?.playVideo();
+    });
+    socket.on("skipSong", () => {
+      console.log("Received skipSong event");
+      if (playerRef.current) {
+        playerRef.current.nextVideo();
+        console.log("Skipped to the next video.");
+      } else {
+        console.error("YouTube player is not ready.");
+      }
+    });
+    socket.on("stopPlaylist", () => {
+      console.log("Received stopPlaylist event");
+      if (playerRef.current) {
+        playerRef.current.stopVideo();
+        setPlaylistLink("");
+        console.log("Stopped the YouTube player.");
+      } else {
+        console.error("YouTube player is not ready.");
+      }
+    });
+
     async function initPhaser() {
       const Phaser = await import("phaser");
       const { default: GridEngine } = await import("grid-engine");
@@ -372,6 +450,35 @@ const Game = ({ userId }: { userId: string }) => {
       setMessage("");
       handleBlur();
     }
+  };
+
+  //* JUKEBOX
+
+  const extractYouTubePlaylistID = (url: string): string | null => {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.searchParams.get("list");
+    } catch (error) {
+      console.error("Invalid YouTube URL:", error);
+      return null;
+    }
+  };
+
+  const handlePlaylistSubmit = () => {
+    const playlistId = extractYouTubePlaylistID(playlistLink);
+    if (!playlistId) {
+      toast.error("Please enter a valid YouTube playlist link");
+      return;
+    }
+    console.log("Playlist ID:", playlistId);
+    socketRef.current.emit("playPlaylist", { playlistLink });
+    setIsJukeboxModalOpen(false);
+    setPlaylistLink("");
+  };
+
+  const onYouTubeReady = (event: any) => {
+    playerRef.current = event.target;
+    console.log("YouTube player is ready.");
   };
 
   //* WEB RTC FUNCTIONS
@@ -515,7 +622,73 @@ const Game = ({ userId }: { userId: string }) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
+      {/*  JUKE BOX UI */}
+      <AlertDialog
+        open={isJukeboxModalOpen} // callerId is converted to its boolean equivalent
+        onOpenChange={setIsJukeboxModalOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Set a Tune 🎵</AlertDialogTitle>
+            <AlertDialogDescription>
+              <input
+                type="text"
+                placeholder="Paste YouTube Playlist Link"
+                className="w-full p-2 border border-gray-300 rounded mb-4"
+                value={playlistLink}
+                onChange={(e) => setPlaylistLink(e.target.value)}
+              />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="text-[#252525] border-[#252525] hover:bg-[#252525] hover:text-white"
+              onClick={() => setIsJukeboxModalOpen(false)}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction className="" onClick={handlePlaylistSubmit}>
+              Play
+            </AlertDialogAction>
+          </AlertDialogFooter>
+          {playlistLink && (
+            <div className="flex justify-center space-x-4">
+              <Button onClick={() => socketRef.current.emit("pausePlaylist")}>
+                Pause
+              </Button>
+              <Button onClick={() => socketRef.current.emit("resumePlaylist")}>
+                Resume
+              </Button>
+              <Button onClick={() => socketRef.current.emit("skipSong")}>
+                Next
+              </Button>
+              <Button onClick={() => socketRef.current.emit("stopPlaylist")}>
+                Stop
+              </Button>
+            </div>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* Hidden YouTube Player for Audio-Only Playback */}
+      <YouTube
+        videoId="" // Will load the playlist via player.loadPlaylist
+        opts={{
+          height: "0",
+          width: "0",
+          playerVars: {
+            listType: "playlist",
+            autoplay: 0,
+            controls: 0,
+            disablekb: 1,
+            modestbranding: 1,
+            rel: 0,
+          },
+        }}
+        onReady={onYouTubeReady}
+        onStateChange={(event: any) => {
+          console.log("YouTube Player State:", event.data);
+        }}
+      />
       {remoteStream && (
         <div className="modal-overlay absolute top-0 left-0 w-full h-full bg-gray-600 bg-opacity-75 flex items-center justify-center z-30">
           <div className="modal-content rounded-xl bg-white p-4  shadow-lg flex flex-col items-center">
@@ -574,7 +747,6 @@ const Game = ({ userId }: { userId: string }) => {
           </div>
         </div>
       )}
-
       <div className="text-xl absolute backdrop-blur-sm flex flex-col max-w-[21vw]   text-white top-10 right-10 z-10">
         <h1 className="text-sm">
           <span className="font-extrabold text-lg">Room id</span>:{" "}
