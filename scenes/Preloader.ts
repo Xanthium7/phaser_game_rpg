@@ -163,6 +163,47 @@ export default class Preloader extends Scene {
     }
   }
 
+  private handleInteractivity(): void {
+    const currentPlayerId = this.socket.id;
+    const facingDirection = this.gridEngine.getFacingDirection(currentPlayerId);
+    const currentPosition = this.gridEngine.getPosition(currentPlayerId);
+
+    const targetPosition = { ...currentPosition }; // Copy the current position
+    switch (facingDirection) {
+      case "up":
+        targetPosition.y -= 1;
+        break;
+      case "down":
+        targetPosition.y += 1;
+        break;
+      case "left":
+        targetPosition.x -= 1;
+        break;
+      case "right":
+        targetPosition.x += 1;
+        break;
+    }
+
+    alert("X: " + targetPosition.x + " Y:" + targetPosition.y);
+    if (
+      (targetPosition.x === 82 && targetPosition.y === 89) ||
+      (targetPosition.x === 81 && targetPosition.y === 89) ||
+      (targetPosition.x === 81 && targetPosition.y === 88) ||
+      (targetPosition.x === 82 && targetPosition.y === 88)
+    ) {
+      alert("Set some cool tunes");
+    }
+    if (
+      (targetPosition.x === 21 && targetPosition.y === 107) ||
+      (targetPosition.x === 22 && targetPosition.y === 106) ||
+      (targetPosition.x === 23 && targetPosition.y === 107) ||
+      (targetPosition.x === 23 && targetPosition.y === 108) ||
+      (targetPosition.x === 23 && targetPosition.y === 109)
+    ) {
+      alert("This looks a bit... SUS..");
+    }
+  }
+
   // ANIAMTION LOGIC
   private createPlayerAnimation(
     name: string,
@@ -353,7 +394,7 @@ export default class Preloader extends Scene {
         this.gridEngine.move(playerId, Direction.DOWN);
         moved = true;
       } else if (this.cursors.space.isDown) {
-        alert("down");
+        this.handleInteractivity();
       } else {
       }
     }

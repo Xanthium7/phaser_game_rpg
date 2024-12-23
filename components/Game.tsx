@@ -277,6 +277,20 @@ const Game = ({ userId }: { userId: string }) => {
       }
     });
 
+    //* some weird bug casuing video usage in client 2 side
+    // socketRef.current.on("end-call", () => {
+    //   endCall();
+    //   toast("Call ended by the other user.", {
+    //     position: "bottom-right",
+    //     autoClose: 3000,
+    //     hideProgressBar: true,
+    //     closeOnClick: true,
+    //     pauseOnHover: false,
+    //     draggable: true,
+    //     theme: "light",
+    //   });
+    // });
+
     async function initPhaser() {
       const Phaser = await import("phaser");
       const { default: GridEngine } = await import("grid-engine");
@@ -433,6 +447,7 @@ const Game = ({ userId }: { userId: string }) => {
     setRemoteStream(null);
     setShowCallModal(false);
     setCallerId(null);
+    socketRef.current?.emit("end-call", { targetId: callerId });
   };
   //* FIXING SPACE-KEY OF ROOM CHAT INTERFIREING WITH SPACE-KEY OF GAME CONTROL
   const [isInputFocused, setIsInputFocused] = useState(false);
