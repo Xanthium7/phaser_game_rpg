@@ -91,6 +91,16 @@ https://appflowy.com/2148cd58-453e-4f2e-af08-21d317bc30be/Untitled-ffccec75-fa91
 ![image](https://github.com/user-attachments/assets/49ada6d6-c1f9-4a51-bdb5-d169ed05ff42)
 
 
+## DAY 21
+
+- Added The a Music Streaming Service
+- I Used react-youtube
+- When u paste your youtube Playlist, music gets stramed with porper controls
+
+  ![image](https://github.com/user-attachments/assets/6ff27e42-0227-4540-9594-479f948f5971)
+
+
+
 
 
 
