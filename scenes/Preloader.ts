@@ -101,6 +101,7 @@ export default class Preloader extends Scene {
       id: this.socket.id,
       x: startPosition.x,
       y: startPosition.y,
+      speed: 4,
     });
 
     // Handle keyboard input
@@ -120,6 +121,8 @@ export default class Preloader extends Scene {
           id: charId,
           x: newPosition.x,
           y: newPosition.y,
+          speed: 4,
+
           // name: this.players[charId].getData('name'),
           // name: "NAMEE"
         });
@@ -273,6 +276,7 @@ export default class Preloader extends Scene {
             x: playerInfo.x,
             y: playerInfo.y,
           });
+          this.gridEngine.setSpeed(playerInfo.id, playerInfo.speed);
         }
       }
     });
@@ -347,6 +351,7 @@ export default class Preloader extends Scene {
       id: playerInfo.id,
       sprite: sprite,
       startPosition: { x: playerInfo.x, y: playerInfo.y },
+      speed: playerInfo.speed || 4,
     });
     if (isCurrentPlayer) {
       this.cameras.main.startFollow(sprite, true);
@@ -400,6 +405,15 @@ export default class Preloader extends Scene {
       } else if (this.cursors.space.isDown) {
         this.handleInteractivity();
       } else {
+      }
+      if (moved) {
+        const currentPosition = this.gridEngine.getPosition(playerId);
+        this.socket.emit("playerMovement", {
+          id: playerId,
+          x: currentPosition.x,
+          y: currentPosition.y,
+          speed: speed, // Include current speed
+        });
       }
     }
   }
