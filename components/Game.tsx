@@ -21,7 +21,11 @@ import {
 import { AiOutlineAudioMuted } from "react-icons/ai";
 import { IoVideocamOffOutline } from "react-icons/io5";
 import { MdCallEnd } from "react-icons/md";
-import { FaVideo } from "react-icons/fa";
+import { FaPause, FaPlay, FaStop, FaVideo } from "react-icons/fa";
+import {
+  TbPlayerSkipBackFilled,
+  TbPlayerSkipForwardFilled,
+} from "react-icons/tb";
 import { FaMicrophone } from "react-icons/fa6";
 import { Button } from "./ui/button";
 
@@ -50,6 +54,7 @@ const Game = ({ userId }: { userId: string }) => {
   const [isJukeboxModalOpen, setIsJukeboxModalOpen] = useState(false);
   const [playlistLink, setPlaylistLink] = useState("");
   const playerRef = useRef<YouTubePlayer | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
 
   async function initLocalStream() {
     try {
@@ -337,36 +342,29 @@ const Game = ({ userId }: { userId: string }) => {
       }
     });
     socket.on("pausePlaylist", () => {
-      console.log("Received pausePlaylist event");
-      if (playerRef.current) {
-        playerRef.current.pauseVideo();
-        console.log("Paused the YouTube player.");
-      } else {
-        console.error("YouTube player is not ready.");
-      }
+      console.log("Pause music");
+      playerRef.current?.pauseVideo();
+      setIsPaused(true);
     });
+
     socket.on("resumePlaylist", () => {
       console.log("Received resumePlaylist event");
       playerRef.current?.playVideo();
+      setIsPaused(false);
     });
+
     socket.on("skipSong", () => {
-      console.log("Received skipSong event");
-      if (playerRef.current) {
-        playerRef.current.nextVideo();
-        console.log("Skipped to the next video.");
-      } else {
-        console.error("YouTube player is not ready.");
-      }
+      playerRef.current?.nextVideo();
+      console.log("Skipped to the next video.");
+    });
+
+    socket.on("prevSong", () => {
+      playerRef.current?.previousVideo();
     });
     socket.on("stopPlaylist", () => {
-      console.log("Received stopPlaylist event");
-      if (playerRef.current) {
-        playerRef.current.stopVideo();
-        setPlaylistLink("");
-        console.log("Stopped the YouTube player.");
-      } else {
-        console.error("YouTube player is not ready.");
-      }
+      playerRef.current?.stopVideo();
+      setPlaylistLink("");
+      console.log("Stopped the YouTube player.");
     });
 
     async function initPhaser() {
@@ -653,17 +651,25 @@ const Game = ({ userId }: { userId: string }) => {
           </AlertDialogFooter>
           {playlistLink && (
             <div className="flex justify-center space-x-4">
-              <Button onClick={() => socketRef.current.emit("pausePlaylist")}>
-                Pause
-              </Button>
-              <Button onClick={() => socketRef.current.emit("resumePlaylist")}>
-                Resume
+              {isPaused ? (
+                <Button
+                  onClick={() => socketRef.current.emit("resumePlaylist")}
+                >
+                  <FaPlay />
+                </Button>
+              ) : (
+                <Button onClick={() => socketRef.current.emit("pausePlaylist")}>
+                  <FaPause />
+                </Button>
+              )}
+              <Button onClick={() => socketRef.current.emit("prevSong")}>
+                <TbPlayerSkipBackFilled />
               </Button>
               <Button onClick={() => socketRef.current.emit("skipSong")}>
-                Next
+                <TbPlayerSkipForwardFilled />
               </Button>
               <Button onClick={() => socketRef.current.emit("stopPlaylist")}>
-                Stop
+                <FaStop />
               </Button>
             </div>
           )}
