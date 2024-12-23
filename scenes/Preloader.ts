@@ -191,7 +191,7 @@ export default class Preloader extends Scene {
       (targetPosition.x === 81 && targetPosition.y === 88) ||
       (targetPosition.x === 82 && targetPosition.y === 88)
     ) {
-      alert("Set some cool tunes");
+      alert("Set some cool tunes here");
     }
     if (
       (targetPosition.x === 21 && targetPosition.y === 107) ||
