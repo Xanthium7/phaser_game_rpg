@@ -96,14 +96,6 @@ export default class Preloader extends Scene {
       }
     });
 
-    // this.addPlayer({ id: this.socket.id, x: startPosition.x, y: startPosition.y }, true);
-    this.socket.emit("playerMovement", {
-      id: this.socket.id,
-      x: startPosition.x,
-      y: startPosition.y,
-      speed: 4,
-    });
-
     // Handle keyboard input
     this.cursors = this.input.keyboard!.createCursorKeys();
 
@@ -122,9 +114,6 @@ export default class Preloader extends Scene {
           x: newPosition.x,
           y: newPosition.y,
           speed: 4,
-
-          // name: this.players[charId].getData('name'),
-          // name: "NAMEE"
         });
       }
     });
@@ -387,19 +376,15 @@ export default class Preloader extends Scene {
       this.gridEngine.setSpeed(playerId, speed);
 
       if (this.cursors.left.isDown) {
-        console.log("Left key is down");
         this.gridEngine.move(playerId, Direction.LEFT);
         moved = true;
       } else if (this.cursors.right.isDown) {
-        console.log("Right key is down");
         this.gridEngine.move(playerId, Direction.RIGHT);
         moved = true;
       } else if (this.cursors.up.isDown) {
-        console.log("Up key is down");
         this.gridEngine.move(playerId, Direction.UP);
         moved = true;
       } else if (this.cursors.down.isDown) {
-        console.log("Down key is down");
         this.gridEngine.move(playerId, Direction.DOWN);
         moved = true;
       } else if (this.cursors.space.isDown) {
