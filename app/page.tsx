@@ -13,7 +13,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
+import { VT323 } from "next/font/google";
+import TypingAnimation from "@/components/ui/typing-animation";
+const vt232 = VT323({
+  subsets: ["latin"],
+  weight: "400",
+});
 export default function Home() {
   const [roomId] = useState(() => uuidv4());
   const [inputId, setInputId] = useState("");
@@ -39,16 +44,18 @@ export default function Home() {
     );
   }
   return (
-    <div className="h-screen w-screen">
-      <div className="bg-slate-300 h-[40vh] flex justify-center items-center flex-col">
-        <div className="overflow-hidden  h-16 w-full flex flex-row justify-center items-center">
+    <div className="overflow-x-hidden ">
+      <div
+        className={` ${vt232.className}  h-screen w-screen bg-cover bg-center bg-[url('/bg2.gif')]`}
+      >
+        <div className="overflow-hidden  h-24 bg-[#0000007c] backdrop-blur-sm border-b-[1px] border-[#f3f3f31c] w-full flex flex-row justify-center items-center">
           <motion.div
             className="box flex w-full justify-between mx-20  "
             initial={{ y: 80, scale: 1 }}
             transition={{ duration: 0.7, ease: "easeInOut" }}
             animate={{ y: 0, scale: 1 }}
           >
-            <h1 className="font-semibold text-5xl ">2D VERSE</h1>
+            <h1 className="font-semibold text-5xl text-white ">CHILL-VERSE</h1>
             <div className="scale-[2]  h-12 w-12 rounded-full flex justify-center items-center">
               <SignedIn>
                 <UserButton />
@@ -56,62 +63,77 @@ export default function Home() {
             </div>
           </motion.div>
         </div>
-        <div className="flex gap-10 h-[25vh] flex-col justify-center items-center pt-20  ">
-          <div className="text-2xl ">
-            Hello, <span className="font-bold">{user.username} </span>
-            Ready to Create Your 2D space?
-          </div>
+        <div className=" w-full h-full flex justify-end items-center flex-col text-white bg-[#0000007c] ">
+          <div className="flex gap-10 h-full flex-col justify-center items-center  ">
+            <div className="text-6xl w-[120%] flex justify-center ">
+              <TypingAnimation>
+                {`Hello ${user.username!.toUpperCase()}, Need a Place to Chill?`}
+              </TypingAnimation>
+            </div>
 
-          <div className="flex  gap-4">
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-              <a
-                href={`/room/${roomId}`}
-                className="bg-gray-700 text-white py-2 px-4 rounded"
+            <div className="flex  gap-10">
+              <motion.div
+                className="backdrop-blur-sm  flex justify-center items-center"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
               >
-                CREATE ROOM
-              </a>
-            </motion.div>
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
+                <a
+                  href={`/room/${roomId}`}
+                  className="bg-[#00000011] text-3xl border-[1px]  text-white py-2 px-4 rounded"
                 >
-                  <a
-                    // href={`/room/${roomId}`}
-                    className="bg-gray-700 text-white py-2 px-4 rounded"
-                  >
-                    JOIN A ROOM
-                  </a>
-                </motion.button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="flex justify-between gap-6">
-                    <input
-                      type="text"
-                      placeholder="Give Room ID"
-                      className="border-2 border-gray-300 rounded-md p-2 w-full"
-                      value={inputId}
-                      onChange={handleInput}
-                    />
-                    <AlertDialogAction
-                      className=" mr-4 my-auto"
-                      onClick={handleJoin}
-                    >
-                      JOIN
-                    </AlertDialogAction>
+                  CREATE ROOM
+                </a>
+              </motion.div>
 
-                    <AlertDialogCancel className="font-bold absolute right-0 top-0 bg-transparent border-none">
-                      X
-                    </AlertDialogCancel>
-                  </AlertDialogTitle>
-                </AlertDialogHeader>
-              </AlertDialogContent>
-            </AlertDialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <motion.button
+                    className="backdrop-blur-sm  flex justify-center items-center"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <a
+                      // href={`/room/${roomId}`}
+                      className="bg-[#00000011] text-3xl border-[1px] text-white py-2 px-4 rounded"
+                    >
+                      JOIN A ROOM
+                    </a>
+                  </motion.button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex justify-between gap-6">
+                      <input
+                        type="text"
+                        placeholder="Give Room ID"
+                        className="border-2 border-gray-300 rounded-md p-2 w-full"
+                        value={inputId}
+                        onChange={handleInput}
+                      />
+                      <AlertDialogAction
+                        className=" mr-4 my-auto"
+                        onClick={handleJoin}
+                      >
+                        JOIN
+                      </AlertDialogAction>
+
+                      <AlertDialogCancel className="font-bold absolute right-0 top-0 bg-transparent border-none">
+                        X
+                      </AlertDialogCancel>
+                    </AlertDialogTitle>
+                  </AlertDialogHeader>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </div>
+      </div>
+      <div className="flex bg-black justify-center items-center h-screen">
+        {/* LHS */}
+        <div className="w-1/2 bg-red-200 h-full"></div>
+
+        {/* RHS */}
+        <div className="w-1/2 bg-red-500 h-full"></div>
       </div>
     </div>
   );
