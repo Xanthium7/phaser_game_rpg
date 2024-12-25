@@ -5,6 +5,11 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
   private background: Phaser.GameObjects.Graphics;
   private isVisible: boolean = false;
   private spaceKey: Phaser.Input.Keyboard.Key;
+  private typingSpeed: number = 30;
+  private typingEvent?: Phaser.Time.TimerEvent;
+  private fullText: string = "";
+  private currentText: string = "";
+  private typingIndex: number = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -24,6 +29,7 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
 
     this.text = scene.add.text(20, 20, "", {
       font: "18px Arial",
+      fontStyle: "bold",
       color: "#000",
       wordWrap: { width: width - 40 },
       align: "left",
@@ -31,7 +37,7 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
     this.add(this.text);
 
     this.setSize(width, height);
-    this.setVisible(false); // initially hidden
+    this.setVisible(false);
     this.setScrollFactor(0);
     this.setDepth(100);
 
@@ -43,25 +49,37 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
 
     this.spaceKey.on("down", () => {
       if (Phaser.Input.Keyboard.JustDown(this.spaceKey) && this.isVisible) {
-        this.hide();
+        if (this.typingEvent) {
+          this.completeTyping();
+        } else {
+          this.hide();
+        }
       }
     });
 
     this.scene.input.on("pointerdown", () => {
       if (this.isVisible) {
-        this.hide();
+        if (this.typingEvent) {
+          this.completeTyping();
+        } else {
+          this.hide();
+        }
       }
     });
   }
+
   public show(message: string) {
     if (this.isVisible) {
       return;
     }
 
-    this.text.setText(`${message}\n\nPress SPACE or Click to Continue.`);
+    this.fullText = `${message}\n\nPress SPACE or Click to Continue.`;
+    this.currentText = "";
+    this.text.setText(this.currentText);
     this.setVisible(true);
     this.setAlpha(0);
     this.isVisible = true;
+    this.typingIndex = 0;
 
     // Fade in the DialogueBox
     this.scene.tweens.add({
@@ -69,12 +87,49 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
       alpha: 1,
       duration: 50,
       ease: "Power2",
+      onComplete: () => {
+        this.startTyping();
+      },
     });
+  }
+
+  private startTyping() {
+    this.typingEvent = this.scene.time.addEvent({
+      delay: this.typingSpeed,
+      callback: this.typeNextLetter,
+      callbackScope: this,
+      loop: true,
+    });
+  }
+
+  private typeNextLetter() {
+    if (this.typingIndex < this.fullText.length) {
+      this.currentText += this.fullText[this.typingIndex];
+      this.text.setText(this.currentText);
+      this.typingIndex++;
+    } else {
+      this.typingEvent?.remove(false);
+      this.typingEvent = undefined;
+    }
+  }
+
+  private completeTyping() {
+    if (this.typingEvent) {
+      this.typingEvent.remove(false);
+      this.typingEvent = undefined;
+      this.currentText = this.fullText;
+      this.text.setText(this.currentText);
+    }
   }
 
   public hide() {
     if (!this.isVisible) {
       return;
+    }
+
+    if (this.typingEvent) {
+      this.typingEvent.remove(false);
+      this.typingEvent = undefined;
     }
 
     // Fade out the DialogueBox
