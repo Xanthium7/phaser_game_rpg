@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { VT323 } from "next/font/google";
 import TypingAnimation from "@/components/ui/typing-animation";
+import Image from "next/image";
+import Features from "@/components/Features";
 const vt232 = VT323({
   subsets: ["latin"],
   weight: "400",
@@ -44,15 +46,15 @@ export default function Home() {
     );
   }
   return (
-    <div className="overflow-x-hidden ">
+    <div className={` ${vt232.className} overflow-x-hidden `}>
       <div
-        className={` ${vt232.className}  h-screen w-screen bg-cover bg-center bg-[url('/bg2.gif')]`}
+        className={`  h-[116vh] w-screen bg-fixed bg-cover bg-center bg-[url('/bg2.gif')]`}
       >
         <div className="overflow-hidden  h-24 bg-[#0000007c] backdrop-blur-sm border-b-[1px] border-[#f3f3f31c] w-full flex flex-row justify-center items-center">
           <motion.div
             className="box flex w-full justify-between mx-20  "
             initial={{ y: 80, scale: 1 }}
-            transition={{ duration: 0.7, ease: "easeInOut" }}
+            transition={{ duration: 0.7, ease: "easeInOut", delay: 0.2 }}
             animate={{ y: 0, scale: 1 }}
           >
             <h1 className="font-semibold text-5xl text-white ">CHILL-VERSE</h1>
@@ -127,14 +129,20 @@ export default function Home() {
             </div>
           </div>
         </div>
+        <div
+          className="flex  justify-center items-center 
+        "
+        >
+          <h1 className="text-white text-7xl ">Features</h1>
+        </div>
       </div>
-      <div className="flex bg-black justify-center items-center h-screen">
-        {/* LHS */}
-        <div className="w-1/2 bg-red-200 h-full"></div>
 
-        {/* RHS */}
-        <div className="w-1/2 bg-red-500 h-full"></div>
-      </div>
+      <Features
+        ltr={true}
+        text="Create a room and invite your friends to play together!"
+        textSize="text-5xl"
+        img="/bg.gif"
+      />
     </div>
   );
 }
