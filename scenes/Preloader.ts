@@ -160,8 +160,16 @@ export default class Preloader extends Scene {
       this.dialogueBox.show("No player is in front of you.");
     }
   }
+  private lastInteractionTime: number = 0;
+  private interactionCooldown: number = 500; // 500ms cooldown
 
   private handleInteractivity(): void {
+    const currentTime = Date.now();
+    if (currentTime - this.lastInteractionTime < this.interactionCooldown) {
+      return; // Prevent spamming
+    }
+    this.lastInteractionTime = currentTime;
+
     const currentPlayerId = this.socket.id;
     const facingDirection = this.gridEngine.getFacingDirection(currentPlayerId);
     const currentPosition = this.gridEngine.getPosition(currentPlayerId);
