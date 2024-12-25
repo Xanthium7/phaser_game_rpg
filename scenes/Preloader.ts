@@ -1,5 +1,6 @@
 import { GridEngine, Direction } from "grid-engine";
 import Phaser, { Scene } from "phaser";
+import DialogueBox from "./DialogueBox";
 
 // to prevent chat controls from messing with game controls
 declare global {
@@ -17,6 +18,7 @@ export default class Preloader extends Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private nameTexts: { [id: string]: Phaser.GameObjects.Text } = {};
   private characterGridWidths: { [id: string]: number } = {};
+  private dialogueBox!: DialogueBox;
 
   constructor() {
     super("Preloader");
@@ -57,6 +59,10 @@ export default class Preloader extends Scene {
 
     // Set the starting position
     const startPosition = { x: 130, y: 80 };
+
+    this.dialogueBox = new DialogueBox(this, 50, 350, 850, 100);
+    this.add.existing(this.dialogueBox);
+    // this.dialogueBox.show("Welcome to CHILL-VERSE!");
 
     // Create grid engine
     this.gridEngine.create(map, {
@@ -151,7 +157,7 @@ export default class Preloader extends Scene {
       const targetPlayerId = playersInFront[0]; // Single player
       this.socket.emit("initiate-video-call", { targetId: targetPlayerId });
     } else {
-      alert("No player is in front of you.");
+      this.dialogueBox.show("No player is in front of you.");
     }
   }
 
@@ -176,7 +182,9 @@ export default class Preloader extends Scene {
         break;
     }
 
-    alert("X: " + targetPosition.x + " Y:" + targetPosition.y);
+    this.dialogueBox.show(
+      `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
+    );
     if (
       (targetPosition.x === 82 && targetPosition.y === 89) ||
       (targetPosition.x === 81 && targetPosition.y === 89) ||
@@ -192,7 +200,44 @@ export default class Preloader extends Scene {
       (targetPosition.x === 23 && targetPosition.y === 108) ||
       (targetPosition.x === 23 && targetPosition.y === 109)
     ) {
-      alert("This looks a bit... SUS..");
+      this.dialogueBox.show("This looks a bit... SUS..");
+    }
+    if (
+      (targetPosition.x === 142 && targetPosition.y === 77) ||
+      (targetPosition.x === 141 && targetPosition.y === 77) ||
+      (targetPosition.x === 142 && targetPosition.y === 76) ||
+      (targetPosition.x === 141 && targetPosition.y === 76)
+    ) {
+      this.dialogueBox.show("YOO ANGELOOO!");
+    }
+    if (targetPosition.x === 196 && targetPosition.y === 78) {
+      this.dialogueBox.show("I built a cool castle here but a caseo ate it");
+    }
+    if (targetPosition.x === 118 && targetPosition.y === 50) {
+      this.dialogueBox.show("Welcome to Chill-Mart");
+    }
+    if (targetPosition.x === 162 && targetPosition.y === 32) {
+      this.dialogueBox.show("Welcome to DroopyVille");
+    }
+    if (targetPosition.x === 177 && targetPosition.y === 26) {
+      this.dialogueBox.show("'sign seems too worn down to read...'");
+    }
+    if (targetPosition.x === 162 && targetPosition.y === 32) {
+      this.dialogueBox.show("Welcome to DroopyVille");
+    }
+    if (targetPosition.x === 58 && targetPosition.y === 32) {
+      this.dialogueBox.show("CHILL PARK");
+    }
+    if (targetPosition.x === 46 && targetPosition.y === 78) {
+      this.dialogueBox.show("PUBLIC LIBRARY");
+    }
+
+    if (
+      (targetPosition.x === 207 && targetPosition.y === 66) ||
+      (targetPosition.x === 206 && targetPosition.y === 66) ||
+      (targetPosition.x === 205 && targetPosition.y === 66)
+    ) {
+      this.dialogueBox.show("Glad they are not placed on Soul Soil..");
     }
   }
 
