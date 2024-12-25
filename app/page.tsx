@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { useUser } from "@clerk/nextjs";
 import { motion } from "motion/react";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { VT323 } from "next/font/google";
 import TypingAnimation from "@/components/ui/typing-animation";
-import Image from "next/image";
+
 import Features from "@/components/Features";
+import Image from "next/image";
 const vt232 = VT323({
   subsets: ["latin"],
   weight: "400",
@@ -26,6 +27,8 @@ export default function Home() {
   const [inputId, setInputId] = useState("");
   const { isLoaded, isSignedIn, user } = useUser();
 
+  const [isMobile, setIsMobile] = useState(false);
+
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     setInputId(e.target.value);
@@ -33,6 +36,18 @@ export default function Home() {
   const handleJoin = () => {
     window.location.href = `/room/${inputId}`;
   };
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768); // 768px breakpoint for mobile devices
+    };
+
+    handleResize(); // Check on initial render
+    window.addEventListener("resize", handleResize); // Listen for window resize
+
+    return () => {
+      window.removeEventListener("resize", handleResize); // Cleanup on unmount
+    };
+  }, []);
 
   if (!isLoaded || !isSignedIn) {
     return (
@@ -42,6 +57,27 @@ export default function Home() {
             <SignInButton />
           </div>
         </SignedOut>
+      </div>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen p-4">
+        <Image
+          src={"/mobile.jpg"}
+          width={800}
+          height={800}
+          className="rounded-xl  border-[4px] border-[#ffffff1a] object-center object-cover "
+          alt=""
+        ></Image>
+        <p className="text-center font-bold text-xl text-gray-700">
+          OPEN THIS ON DESKTOP!!!
+        </p>
+        <p className="text-center   text-gray-700">
+          (PS. I'm working on a mobile version of the game controls and itll be
+          ready very soon!)
+        </p>
       </div>
     );
   }
@@ -67,10 +103,18 @@ export default function Home() {
         </div>
         <div className=" w-full h-full flex justify-end items-center flex-col text-white bg-[#0000007c] ">
           <div className="flex gap-10 h-full flex-col justify-center items-center  ">
-            <div className="text-6xl w-[120%] flex justify-center ">
+            <div className="text-6xl w-[120%] flex flex-col items-center justify-center ">
               <TypingAnimation>
                 {`Hello ${user.username!.toUpperCase()}, Need a Place to Chill?`}
               </TypingAnimation>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 1, delay: 2 }}
+                className="text-lg"
+              >
+                (PS. use chrome browser as im cutting costs for TURN server)
+              </motion.p>
             </div>
 
             <div className="flex  gap-10">
@@ -129,20 +173,48 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div
-          className="flex  justify-center items-center 
-        "
-        >
-          <h1 className="text-white text-7xl ">Features</h1>
-        </div>
+      </div>
+      <div className="flex flex-col b">
+        <h1 className="text-white  bg-black pt-16 flex flex-col items-center justify-center   text-7xl ">
+          Things To do...
+        </h1>
       </div>
 
       <Features
         ltr={true}
         text="Create a room and invite your friends to play together!"
         textSize="text-5xl"
-        img="/bg.gif"
+        img="/img1.png"
       />
+
+      <Features
+        ltr={false}
+        text={`Use Arrow keys to move around, Space to Interact and Shift to Sprint.`}
+        textSize="text-5xl"
+        img="/img2.gif"
+      />
+      <Features
+        ltr={true}
+        text={`Use F4 to place video and audio calls with your friends.`}
+        textSize="text-5xl"
+        img="/img3.png"
+      />
+      <Features
+        ltr={false}
+        text={`Find the juke Box in Library to Stream your faviorite songs with your friends.`}
+        textSize="text-5xl"
+        img="/img4.gif"
+      />
+      <Features
+        ltr={true}
+        text={`Explore the map and find hidden easter eggs.`}
+        textSize="text-5xl"
+        img="/img5.png"
+      />
+
+      <footer className="bg-black  text-white py-4 flex justify-center items-center text-center w-full h-[16vh]">
+        <h1 className="text-2xl"> Ready to Relax and Chill..?</h1>
+      </footer>
     </div>
   );
 }

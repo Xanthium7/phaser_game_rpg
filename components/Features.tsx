@@ -15,7 +15,7 @@ const Features = ({
 }) => {
   return (
     <div className="flex flex-col bg-black justify-center items-center h-screen">
-      <div className="flex  w-full h-full justify-center items-center">
+      <div className="flex  w-full h-full justify-center items-center border-b-[1px] border-[#f3f3f31c]">
         {ltr ? (
           <>
             {/* LHS */}
@@ -53,7 +53,7 @@ const Features = ({
                   <Image
                     width={400}
                     height={400}
-                    className="rounded-xl object-center object-cover w-[40vw] h-[50vh]"
+                    className="rounded-xl  border-[4px] border-[#ffffff1a] object-center object-cover w-[40vw] h-[50vh]"
                     src={img}
                     alt=""
                   />
@@ -80,7 +80,7 @@ const Features = ({
                   <Image
                     width={400}
                     height={400}
-                    className="rounded-xl object-center object-cover w-[40vw] h-[50vh]"
+                    className="rounded-xl border-[4px] border-[#ffffff1a] object-center object-cover w-[40vw] h-[50vh]"
                     src={img}
                     alt=""
                   />
