@@ -6,7 +6,7 @@ import { useUser } from "@clerk/nextjs";
 
 function Page() {
   const params = useParams<{ userId: string; tag: string; item: string }>();
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { isLoaded, isSignedIn } = useUser();
 
   if (!isLoaded || !isSignedIn) {
     return (
