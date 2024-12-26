@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 
 export default class DialogueBox extends Phaser.GameObjects.Container {
   private text: Phaser.GameObjects.Text;

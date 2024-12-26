@@ -1,5 +1,6 @@
 import { GridEngine, Direction } from "grid-engine";
-import Phaser, { Scene } from "phaser";
+import * as Phaser from "phaser";
+import { Scene } from "phaser";
 import DialogueBox from "./DialogueBox";
 
 // to prevent chat controls from messing with game controls
