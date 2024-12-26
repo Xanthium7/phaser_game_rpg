@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import localFont from "next/font/local";
+import SmoothScrolling from "@/components/SmoothScrolling";
 
 import "./globals.css";
 
@@ -30,7 +31,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ClerkProvider>{children}</ClerkProvider>
+        <SmoothScrolling>
+          <ClerkProvider>{children}</ClerkProvider>
+        </SmoothScrolling>
       </body>
     </html>
   );
