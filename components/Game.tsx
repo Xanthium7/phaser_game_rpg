@@ -434,7 +434,8 @@ const Game = ({ userId }: { userId: string }) => {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (socketRef.current) {
+    const trimmedMessage = message.trim();
+    if (socketRef.current && trimmedMessage !== "") {
       socketRef.current.emit("chatMessage", { message });
 
       setMessages((prevMessages) => [
