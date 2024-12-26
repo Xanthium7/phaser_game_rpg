@@ -16,7 +16,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "2D VERSE",
+  title: "CHILL VERSE",
   description: "Explore the World of 2D VERSE with your friends",
 };
 

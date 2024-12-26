@@ -62,7 +62,7 @@ export default class Preloader extends Scene {
 
     this.dialogueBox = new DialogueBox(this, 50, 350, 850, 100);
     this.add.existing(this.dialogueBox);
-    // this.dialogueBox.show("Welcome to CHILL-VERSE!");
+    this.dialogueBox.show("Welcome to your new world!");
 
     // Create grid engine
     this.gridEngine.create(map, {
@@ -216,7 +216,7 @@ export default class Preloader extends Scene {
       (targetPosition.x === 142 && targetPosition.y === 76) ||
       (targetPosition.x === 141 && targetPosition.y === 76)
     ) {
-      this.dialogueBox.show("YOO ANGELOOO!");
+      this.dialogueBox.show("YO ANGELO!");
     }
     if (targetPosition.x === 196 && targetPosition.y === 78) {
       this.dialogueBox.show("I built a cool castle here but a caseo ate it");
@@ -230,11 +230,19 @@ export default class Preloader extends Scene {
     if (targetPosition.x === 177 && targetPosition.y === 26) {
       this.dialogueBox.show("'sign seems too worn down to read...'");
     }
+    if (targetPosition.x === 181 && targetPosition.y === 53) {
+      this.dialogueBox.show("The dead dont tell tales");
+    }
     if (targetPosition.x === 162 && targetPosition.y === 32) {
-      this.dialogueBox.show("Welcome to DroopyVille");
+      this.dialogueBox.show("Drop by DroopyVille");
     }
     if (targetPosition.x === 58 && targetPosition.y === 32) {
-      this.dialogueBox.show("CHILL PARK");
+      this.dialogueBox.show("CHILLINGTON PARK");
+    }
+    if (targetPosition.x === 49 && targetPosition.y === 44) {
+      this.dialogueBox.show(
+        "'Hello.. Can u hear me... Im under the water... here too much raining.. weeps*"
+      );
     }
     if (targetPosition.x === 46 && targetPosition.y === 78) {
       this.dialogueBox.show("PUBLIC LIBRARY");

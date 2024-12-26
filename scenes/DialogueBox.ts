@@ -21,7 +21,7 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
     super(scene, x, y);
 
     this.background = scene.add.graphics();
-    this.background.fillStyle(0xffffff, 0.7);
+    this.background.fillStyle(0xffffff, 0.9);
     this.background.fillRoundedRect(0, 0, width, height, 20);
     this.background.lineStyle(2, 0x8f9da6, 1);
     this.background.strokeRoundedRect(0, 0, width, height, 20);
@@ -30,6 +30,7 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
     this.text = scene.add.text(20, 20, "", {
       font: "18px Arial",
       fontStyle: "bold",
+      fontFamily: "",
       color: "#000",
       wordWrap: { width: width - 40 },
       align: "left",
