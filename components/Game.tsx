@@ -241,7 +241,7 @@ const Game = ({ userId }: { userId: string }) => {
     if (!isLoaded) return;
 
     console.log("NAME RECIEVED IN GAME: ", user?.username);
-    const socket = io("http://localhost:3001", {
+    const socket = io(process.env.NEXT_PUBLIC_SERVER_URL!, {
       query: { roomId: userId, playername: user?.username || "nice name" },
     });
     socketRef.current = socket; // To access this socket in the Form functions

@@ -18,7 +18,8 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "CHILL VERSE",
-  description: "Explore the World of 2D VERSE with your friends",
+  description:
+    "Discover and explore the vibrant world of 2D VERSE with your friends. Dive into an engaging multiplayer RPG experience filled with adventure and fun.",
 };
 
 export default function RootLayout({
