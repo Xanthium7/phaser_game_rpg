@@ -16,7 +16,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
+  // AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AiOutlineAudioMuted } from "react-icons/ai";
 import { IoVideocamOffOutline } from "react-icons/io5";
@@ -239,6 +239,7 @@ const Game = ({ userId }: { userId: string }) => {
 
   useEffect(() => {
     if (!isLoaded) return;
+    console.log(isSignedIn, "USER SIGNED IN");
 
     console.log("NAME RECIEVED IN GAME: ", user?.username);
     const socket = io(process.env.NEXT_PUBLIC_SERVER_URL!, {
@@ -556,6 +557,7 @@ const Game = ({ userId }: { userId: string }) => {
   };
   //* FIXING SPACE-KEY OF ROOM CHAT INTERFIREING WITH SPACE-KEY OF GAME CONTROL
   const [isInputFocused, setIsInputFocused] = useState(false);
+  console.log(isInputFocused);
 
   const handleFocus = () => {
     setIsInputFocused(true);

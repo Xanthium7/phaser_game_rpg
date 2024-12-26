@@ -75,8 +75,8 @@ export default function Home() {
           OPEN THIS ON DESKTOP!!!
         </p>
         <p className="text-center   text-gray-700">
-          (PS. I'm working on a mobile version of the game controls and itll be
-          ready very soon!)
+          (PS. I&apos;m working on a mobile version of the game controls and
+          it&apos;ll be ready very soon!)
         </p>
       </div>
     );
