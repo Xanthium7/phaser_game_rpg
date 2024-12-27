@@ -232,7 +232,7 @@ export default class Preloader extends Scene {
       this.dialogueBox.show("'sign seems too worn down to read...'");
     }
     if (targetPosition.x === 181 && targetPosition.y === 53) {
-      this.dialogueBox.show("The dead dont tell tales");
+      this.dialogueBox.show("The Dead dont tell tales..");
     }
     if (targetPosition.x === 162 && targetPosition.y === 32) {
       this.dialogueBox.show("Drop by DroopyVille");
