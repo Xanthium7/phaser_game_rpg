@@ -29,6 +29,12 @@ import {
 import { FaMicrophone } from "react-icons/fa6";
 import { Button } from "./ui/button";
 
+declare global {
+  interface Window {
+    YT: any;
+  }
+}
+
 const Game = ({ userId }: { userId: string }) => {
   const { isLoaded, isSignedIn, user } = useUser();
   const [message, setMessage] = useState("");
@@ -55,6 +61,7 @@ const Game = ({ userId }: { userId: string }) => {
   const [playlistLink, setPlaylistLink] = useState("");
   const playerRef = useRef<YouTubePlayer | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [currentSong, setCurrentSong] = useState<string>("");
 
   async function initLocalStream() {
     try {
@@ -479,7 +486,15 @@ const Game = ({ userId }: { userId: string }) => {
 
   const onYouTubeReady = (event: any) => {
     playerRef.current = event.target;
-    console.log("YouTube player is ready.");
+    playerRef.current.addEventListener("onStateChange", onPlayerStateChange);
+  };
+
+  // Add a handler for YouTube player state changes
+  const onPlayerStateChange = (event: any) => {
+    if (event.data === window.YT.PlayerState.PLAYING) {
+      const videoData = playerRef.current.getVideoData();
+      setCurrentSong(videoData.title);
+    }
   };
 
   //* WEB RTC FUNCTIONS
@@ -640,6 +655,11 @@ const Game = ({ userId }: { userId: string }) => {
                 value={playlistLink}
                 onChange={(e) => setPlaylistLink(e.target.value)}
               />
+              {currentSong && (
+                <div className="mt-2 text-center">
+                  <strong>Now Playing:</strong> {currentSong}
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
