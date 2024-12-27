@@ -245,7 +245,7 @@ const Game = ({ userId }: { userId: string }) => {
     const socket = io(process.env.NEXT_PUBLIC_SERVER_URL!, {
       query: { roomId: userId, playername: user?.username || "nice name" },
     });
-    socketRef.current = socket; // To access this socket in the Form functions
+    socketRef.current = socket;
 
     socket.on("chatMessage", (data: any) => {
       setMessages((prevMessages) => [
