@@ -251,7 +251,7 @@ const Game = ({ userId }: { userId: string }) => {
     console.log("NAME RECIEVED IN GAME: ", user?.username);
     const socket = io(process.env.NEXT_PUBLIC_SERVER_URL!, {
       query: { roomId: userId, playername: user?.username || "nice name" },
-      path: "/clients/socketio/hubs/Hub",
+      // path: "/clients/socketio/hubs/Hub",
     });
     socketRef.current = socket;
 
