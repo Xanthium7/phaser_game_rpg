@@ -99,7 +99,11 @@ https://appflowy.com/2148cd58-453e-4f2e-af08-21d317bc30be/Untitled-ffccec75-fa91
 
   ![image](https://github.com/user-attachments/assets/6ff27e42-0227-4540-9594-479f948f5971)
 
+## DAY 22-23
+- Added a Frontend to the Landing page
+- Added Dialogue BOx setting for Space key interaction
 
+- ![image](https://github.com/user-attachments/assets/f56e5c44-1eb3-453f-a6b4-057f3093b8f9)
 
 
 
