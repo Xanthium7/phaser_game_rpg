@@ -289,7 +289,7 @@ const Game = ({ userId }: { userId: string }) => {
     });
 
     // Listen for playerDisconnected event
-    socketRef.current.on("playerDisconnected", (playerId: any) => {
+    socketRef.current.on("playerDisconnected", () => {
       toast.warn(`A player has left the game.`, {
         position: "top-right",
         autoClose: 3000,
