@@ -280,6 +280,22 @@ const Game = ({ userId }: { userId: string }) => {
       setShowCallModal(true);
     });
 
+    socketRef.current.on("newPlayer", (playerData: any) => {
+      const playerName = playerData.name || "A new player";
+      toast.info(`${playerName} has joined the game!`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    });
+
+    // Listen for playerDisconnected event
+    socketRef.current.on("playerDisconnected", (playerId: any) => {
+      toast.warn(`A player has left the game.`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    });
+
     socket.on("call-accepted", async ({ from }: any) => {
       try {
         let stream = localStream;
