@@ -1,5 +1,5 @@
 
-# 2D Verse App 
+# CHILL Verse App 
 ### (Basically an app where you join and hangout with friends)
 
 This project is an RPG-like game built using Phaser.js and GridEngine. The game allows a player to move around in a tilemap world and interact with objects and environments.
