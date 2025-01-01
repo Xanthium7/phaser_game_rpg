@@ -191,9 +191,6 @@ export default class Preloader extends Scene {
         break;
     }
 
-    // this.dialogueBox.show(
-    //   `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
-    // );
     if (
       (targetPosition.x === 82 && targetPosition.y === 89) ||
       (targetPosition.x === 81 && targetPosition.y === 89) ||
@@ -256,6 +253,22 @@ export default class Preloader extends Scene {
     ) {
       this.dialogueBox.show("Glad they are not placed on Soul Soil..");
     }
+    if (
+      (targetPosition.x === 150 && targetPosition.y === 75) || // Example coordinates
+      (targetPosition.x === 151 && targetPosition.y === 75) ||
+      (targetPosition.x === 150 && targetPosition.y === 74) ||
+      (targetPosition.x === 151 && targetPosition.y === 74)
+    ) {
+      this.dialogueBox.show("Starting Tic-Tac-Toe!");
+      // Emit an event to open Tic-Tac-Toe modal on the client
+      this.showTickTackToeModal();
+    }
+    // this.dialogueBox.show(
+    //   `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
+    // );
+  }
+  private showTickTackToeModal() {
+    this.socket.emit("startTicTacToe");
   }
 
   private showJukeBoxModal() {

@@ -29,7 +29,6 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.4.0",
-    "react-tic-tac-toe": "^1.0.3",
     "react-toastify": "^10.0.6",
     "react-youtube": "^10.1.0",
     "socket.io": "^4.8.1",

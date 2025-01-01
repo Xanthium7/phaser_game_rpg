@@ -1,11 +1,9 @@
 "use client";
 import React, { useEffect, useState } from "react";
-// import { io } from "socket.io-client";
+import io from "socket.io-client";
 import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import "react-tic-tac-toe/dist/styles.css";
-
-var TicTacToe = require("react-tic-tac-toe");
+import TicTacToeBoard from "./TicTacToeBoard";
+// import "react-toastify/dist/ReactToastify.css";
 
 const TicTacToeModal = ({
   roomId,
@@ -93,7 +91,7 @@ const TicTacToeModal = ({
               You are '{symbol}'.{" "}
               {currentTurn === socket.id ? "Your" : "Opponent's"} Turn
             </p>
-            <TicTacToe
+            <TicTacToeBoard
               board={board}
               onCellClick={handleCellClick}
               disable={winner !== null}

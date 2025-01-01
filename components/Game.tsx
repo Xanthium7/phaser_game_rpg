@@ -28,6 +28,8 @@ import {
 } from "react-icons/tb";
 import { FaMicrophone } from "react-icons/fa6";
 import { Button } from "./ui/button";
+import TicTacToeModal from "@/components/TicTacToeModal"; // Ensure correct import path
+import TicTacToeBoard from "@/components/TicTacToeBoard";
 
 declare global {
   interface Window {
@@ -62,6 +64,8 @@ const Game = ({ userId }: { userId: string }) => {
   const playerRef = useRef<YouTubePlayer | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [currentSong, setCurrentSong] = useState<string>("");
+  //* MINI GAMES
+  const [isTicTacToeModalOpen, setIsTicTacToeModalOpen] = useState(false);
 
   async function initLocalStream() {
     try {
@@ -392,6 +396,12 @@ const Game = ({ userId }: { userId: string }) => {
       console.log("Stopped the YouTube player.");
     });
 
+    //* MINI GAMES
+    socket.on("startTicTacToe", () => {
+      console.log("Received startTicTacToe event");
+      setIsTicTacToeModalOpen(true);
+    });
+
     async function initPhaser() {
       const Phaser = await import("phaser");
       const { default: GridEngine } = await import("grid-engine");
@@ -617,6 +627,13 @@ const Game = ({ userId }: { userId: string }) => {
       theme: "light",
     });
 
+  //* MINIGAMES Handlers
+
+  // TIC TAC TOE
+  const handleMiniGameInteraction = () => {
+    setIsTicTacToeModalOpen(true);
+  };
+
   return (
     <>
       <ToastContainer />
@@ -735,6 +752,14 @@ const Game = ({ userId }: { userId: string }) => {
           console.log("YouTube Player State:", event.data);
         }}
       />
+      {/* Tic-Tac-Toe Modal */}
+      {isTicTacToeModalOpen && (
+        <TicTacToeModal
+          roomId={userId}
+          playername={user?.username || "Player"}
+          onClose={() => setIsTicTacToeModalOpen(false)}
+        />
+      )}
       {remoteStream && (
         <div className="modal-overlay absolute top-0 left-0 w-full h-full bg-gray-600 bg-opacity-75 flex items-center justify-center z-30">
           <div className="modal-content rounded-xl bg-white p-4  shadow-lg flex flex-col items-center">
