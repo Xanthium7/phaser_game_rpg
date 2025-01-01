@@ -66,6 +66,8 @@ const Game = ({ userId }: { userId: string }) => {
   const [currentSong, setCurrentSong] = useState<string>("");
   //* MINI GAMES
   const [isTicTacToeModalOpen, setIsTicTacToeModalOpen] = useState(false);
+  const [isWaitingForPlayer, setIsWaitingForPlayer] = useState(false);
+  const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
 
   async function initLocalStream() {
     try {
@@ -397,8 +399,16 @@ const Game = ({ userId }: { userId: string }) => {
     });
 
     //* MINI GAMES
-    socket.on("startTicTacToe", () => {
-      console.log("Received startTicTacToe event");
+    socket.on("waitingForPlayer", () => {
+      console.log("Waiting for another player to join...");
+      setIsWaitingForPlayer(true);
+      setIsTicTacToeModalOpen(false);
+    });
+
+    socket.on("gameStart", (data: any) => {
+      console.log("Received gameStart event", data);
+      setIsWaitingForPlayer(false);
+      setCurrentRoomId(data.roomId);
       setIsTicTacToeModalOpen(true);
     });
 
@@ -755,6 +765,7 @@ const Game = ({ userId }: { userId: string }) => {
       {/* Tic-Tac-Toe Modal */}
       {isTicTacToeModalOpen && (
         <TicTacToeModal
+          socket={socketRef.current}
           roomId={userId}
           playername={user?.username || "Player"}
           onClose={() => setIsTicTacToeModalOpen(false)}

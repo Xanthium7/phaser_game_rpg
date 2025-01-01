@@ -1,20 +1,21 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import io from "socket.io-client";
+// import io from "socket.io-client";
 import { ToastContainer, toast } from "react-toastify";
 import TicTacToeBoard from "./TicTacToeBoard";
 // import "react-toastify/dist/ReactToastify.css";
 
 const TicTacToeModal = ({
+  socket,
   roomId,
   playername,
   onClose,
 }: {
+  socket: any;
   roomId: string;
   playername: string;
   onClose: () => void;
 }) => {
-  const [socket, setSocket] = useState<any>(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [symbol, setSymbol] = useState<string | null>(null);
   const [currentTurn, setCurrentTurn] = useState<string | null>(null);
@@ -22,45 +23,40 @@ const TicTacToeModal = ({
   const [winner, setWinner] = useState<string | null>(null);
 
   useEffect(() => {
-    const newSocket = io(process.env.NEXT_PUBLIC_SERVER_URL!, {
-      query: { roomId: roomId, playername: playername },
-    });
-    setSocket(newSocket);
-
-    newSocket.on("gameStart", (data: any) => {
+    socket.on("gameStart", (data: any) => {
       setSymbol(data.symbol);
       setBoard(data.board);
       setCurrentTurn(data.currentTurn);
       setGameStarted(true);
       toast.info(`Game started! You are '${data.symbol}'`);
     });
-    newSocket.on("gameUpdate", (data: any) => {
+    socket.on("gameUpdate", (data: any) => {
       setBoard(data.board);
       setCurrentTurn(data.currentTurn);
       setWinner(data.winner);
       if (data.winner) {
-        const winnerName = data.winner === newSocket.id ? "You" : "Opponent";
+        const winnerName = data.winner === socket.id ? "You" : "Opponent";
         toast.success(`${winnerName} won the game!`);
         setGameStarted(false);
       }
     });
-    newSocket.on("gameReset", (data: any) => {
+    socket.on("gameReset", (data: any) => {
       setBoard(data.board);
       setWinner(null);
       setGameStarted(false);
       toast.info("Game has been reset.");
     });
-    newSocket.on("invalidMove", (message: string) => {
+    socket.on("invalidMove", (message: string) => {
       toast.error(message);
     });
 
     // Listen for gameFull
-    newSocket.on("gameFull", () => {
+    socket.on("gameFull", () => {
       toast.error("Game room is full.");
       onClose();
     });
     return () => {
-      newSocket.disconnect();
+      socket.disconnect();
     };
   }, [roomId, playername, onClose]);
 
