@@ -69,7 +69,9 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
     });
   }
 
-  public show(message: string) {
+  private onCloseCallback: (() => void) | null = null;
+
+  public show(message: string, onClose?: () => void): void {
     if (this.isVisible) {
       return;
     }
@@ -90,6 +92,11 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
       ease: "Power2",
       onComplete: () => {
         this.startTyping();
+
+        if (this.onCloseCallback) {
+          this.onCloseCallback();
+          this.onCloseCallback = null;
+        }
       },
     });
   }

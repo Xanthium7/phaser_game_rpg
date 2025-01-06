@@ -20,6 +20,7 @@ export default class Preloader extends Scene {
   private nameTexts: { [id: string]: Phaser.GameObjects.Text } = {};
   private characterGridWidths: { [id: string]: number } = {};
   private dialogueBox!: DialogueBox;
+  private npcIsInteracting: boolean = false;
 
   constructor() {
     super("Preloader");
@@ -174,11 +175,8 @@ export default class Preloader extends Scene {
 
   private addNPCLog(): void {
     const startGridPosition = { x: 147, y: 70 }; // Grid coordinates
-
-    // Create NPC sprite without setting a pixel position
     const npcLog = this.add.sprite(0, 0, "npc_log");
 
-    // Add NPC to GridEngine
     this.gridEngine.addCharacter({
       id: "npc_log",
       sprite: npcLog,
@@ -187,18 +185,17 @@ export default class Preloader extends Scene {
     });
 
     // Initialize NPC facing down
-    npcLog.play("npc_walk_down");
+    // npcLog.play("npc_walk_down");
 
     // Listen to GridEngine movement events
     this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
-      if (charId === "npc_log") {
+      if (charId === "npc_log" && !this.npcIsInteracting) {
         this.lastDirection = direction;
         npcLog.play(`npc_walk_${direction}`);
       }
     });
-
     this.gridEngine.movementStopped().subscribe(({ charId }) => {
-      if (charId === "npc_log") {
+      if (charId === "npc_log" && !this.npcIsInteracting) {
         npcLog.anims.stop();
         // Set frame based on last direction
         switch (this.lastDirection) {
@@ -222,6 +219,9 @@ export default class Preloader extends Scene {
     this.time.addEvent({
       delay: 500,
       callback: () => {
+        if (this.npcIsInteracting) {
+          return; // Prevent movement during interaction
+        }
         const directions = ["up", "down", "left", "right"];
         const randomDirection = Phaser.Utils.Array.GetRandom(directions);
 
@@ -403,9 +403,14 @@ export default class Preloader extends Scene {
       npcGridPosition.y
     );
 
-    if (distance <= 1.5) {
+    if (distance <= 1.5 && !this.npcIsInteracting) {
+      this.npcIsInteracting = true; // Set interaction flag
       this.dialogueBox.show(
-        "Hello! I'm the Log NPC. How can I assist you today?"
+        "Hello! I'm the Log NPC. How can I assist you today?",
+        () => {
+          this.npcIsInteracting = false; // Reset interaction flag
+          // Optionally, resume NPC movement or other actions here
+        }
       );
     }
   }
