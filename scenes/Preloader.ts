@@ -220,7 +220,7 @@ export default class Preloader extends Scene {
 
     // Setup random movement via GridEngine
     this.time.addEvent({
-      delay: 2000, // Every 2 seconds
+      delay: 500,
       callback: () => {
         const directions = ["up", "down", "left", "right"];
         const randomDirection = Phaser.Utils.Array.GetRandom(directions);
@@ -395,8 +395,7 @@ export default class Preloader extends Scene {
     ) {
       this.dialogueBox.show("Glad they are not placed on Soul Soil..");
     }
-
-    const npcGridPosition = { x: 147, y: 70 }; // NPC's start grid position
+    const npcGridPosition = this.gridEngine.getPosition("npc_log");
     const distance = Phaser.Math.Distance.Between(
       targetPosition.x,
       targetPosition.y,
