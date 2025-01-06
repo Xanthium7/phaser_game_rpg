@@ -43,6 +43,10 @@ export default class Preloader extends Scene {
       frameWidth: 16,
       frameHeight: 32,
     });
+    this.load.spritesheet("npc_log", "/assets/log.png", {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
   }
   create() {
     const map = this.make.tilemap({ key: "map" });
@@ -77,6 +81,46 @@ export default class Preloader extends Scene {
         },
       ],
     });
+
+    // Walk aimation for NPC
+    this.anims.create({
+      key: "npc_walk_down",
+      frames: this.anims.generateFrameNumbers("npc_log", { start: 0, end: 3 }),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "npc_walk_left",
+      frames: this.anims.generateFrameNumbers("npc_log", {
+        start: 18,
+        end: 21,
+      }),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "npc_walk_right",
+      frames: this.anims.generateFrameNumbers("npc_log", {
+        start: 12,
+        end: 15,
+      }),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "npc_walk_up",
+      frames: this.anims.generateFrameNumbers("npc_log", {
+        start: 6,
+        end: 9,
+      }),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    this.addNPCLog();
 
     // Set up movement event listeners
     this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
@@ -123,6 +167,101 @@ export default class Preloader extends Scene {
           speed: 4,
         });
       }
+    });
+  }
+
+  private lastDirection: string = "down";
+
+  private addNPCLog(): void {
+    const startGridPosition = { x: 147, y: 70 }; // Grid coordinates
+
+    // Create NPC sprite without setting a pixel position
+    const npcLog = this.add.sprite(0, 0, "npc_log");
+
+    // Add NPC to GridEngine
+    this.gridEngine.addCharacter({
+      id: "npc_log",
+      sprite: npcLog,
+      startPosition: startGridPosition,
+      speed: 4,
+    });
+
+    // Initialize NPC facing down
+    npcLog.play("npc_walk_down");
+
+    // Listen to GridEngine movement events
+    this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
+      if (charId === "npc_log") {
+        this.lastDirection = direction;
+        npcLog.play(`npc_walk_${direction}`);
+      }
+    });
+
+    this.gridEngine.movementStopped().subscribe(({ charId }) => {
+      if (charId === "npc_log") {
+        npcLog.anims.stop();
+        // Set frame based on last direction
+        switch (this.lastDirection) {
+          case "up":
+            npcLog.setFrame(12);
+            break;
+          case "down":
+            npcLog.setFrame(0);
+            break;
+          case "left":
+            npcLog.setFrame(4);
+            break;
+          case "right":
+            npcLog.setFrame(8);
+            break;
+        }
+      }
+    });
+
+    // Setup random movement via GridEngine
+    this.time.addEvent({
+      delay: 2000, // Every 2 seconds
+      callback: () => {
+        const directions = ["up", "down", "left", "right"];
+        const randomDirection = Phaser.Utils.Array.GetRandom(directions);
+
+        const movementRange = 3; // Number of tiles to move from start position in any direction
+
+        const currentPos = this.gridEngine.getPosition("npc_log");
+
+        let newX = currentPos.x;
+        let newY = currentPos.y;
+
+        switch (randomDirection) {
+          case "up":
+            newY = currentPos.y - movementRange;
+            break;
+          case "down":
+            newY = currentPos.y + movementRange;
+            break;
+          case "left":
+            newX = currentPos.x - movementRange;
+            break;
+          case "right":
+            newX = currentPos.x + movementRange;
+            break;
+        }
+
+        // Clamp new position within movement boundaries around start
+        const minX = startGridPosition.x - movementRange;
+        const maxX = startGridPosition.x + movementRange;
+        const minY = startGridPosition.y - movementRange;
+        const maxY = startGridPosition.y + movementRange;
+
+        newX = Phaser.Math.Clamp(newX, minX, maxX);
+        newY = Phaser.Math.Clamp(newY, minY, maxY);
+
+        // If new position is different, move NPC
+        if (newX !== currentPos.x || newY !== currentPos.y) {
+          this.gridEngine.moveTo("npc_log", { x: newX, y: newY });
+        }
+      },
+      loop: true,
     });
   }
 
@@ -255,6 +394,20 @@ export default class Preloader extends Scene {
       (targetPosition.x === 205 && targetPosition.y === 66)
     ) {
       this.dialogueBox.show("Glad they are not placed on Soul Soil..");
+    }
+
+    const npcGridPosition = { x: 147, y: 70 }; // NPC's start grid position
+    const distance = Phaser.Math.Distance.Between(
+      targetPosition.x,
+      targetPosition.y,
+      npcGridPosition.x,
+      npcGridPosition.y
+    );
+
+    if (distance <= 1.5) {
+      this.dialogueBox.show(
+        "Hello! I'm the Log NPC. How can I assist you today?"
+      );
     }
   }
 
