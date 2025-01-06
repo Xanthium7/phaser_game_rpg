@@ -203,13 +203,13 @@ export default class Preloader extends Scene {
         // Set frame based on last direction
         switch (this.lastDirection) {
           case "up":
-            npcLog.setFrame(12);
+            npcLog.setFrame(6);
             break;
           case "down":
             npcLog.setFrame(0);
             break;
           case "left":
-            npcLog.setFrame(4);
+            npcLog.setFrame(13);
             break;
           case "right":
             npcLog.setFrame(8);
