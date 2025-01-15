@@ -105,6 +105,15 @@ https://appflowy.com/2148cd58-453e-4f2e-af08-21d317bc30be/Untitled-ffccec75-fa91
 
 - ![image](https://github.com/user-attachments/assets/f56e5c44-1eb3-453f-a6b4-057f3093b8f9)
 
+## DAY 24
+- Added NPC LOG
+- Added Ai intergration to its messages
+  
+
+
+https://github.com/user-attachments/assets/30cd8a7f-04db-4bce-b17a-e0170b837e2b
+
+
 
 
 
