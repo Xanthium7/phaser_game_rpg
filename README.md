@@ -107,6 +107,7 @@ https://appflowy.com/2148cd58-453e-4f2e-af08-21d317bc30be/Untitled-ffccec75-fa91
 
 ## DAY 24
 - Added NPC LOG
+- Added Personality to the Log,
 - Added Ai intergration to its messages
   
 
