@@ -2,6 +2,8 @@ import { GridEngine, Direction } from "grid-engine";
 import * as Phaser from "phaser";
 import { Scene } from "phaser";
 import DialogueBox from "./DialogueBox";
+import { Ai_response_log } from "@/actions/actions";
+// import { Ai_response } from "@/actions/actions";
 
 // to prevent chat controls from messing with game controls
 declare global {
@@ -20,6 +22,7 @@ export default class Preloader extends Scene {
   private nameTexts: { [id: string]: Phaser.GameObjects.Text } = {};
   private characterGridWidths: { [id: string]: number } = {};
   private dialogueBox!: DialogueBox;
+  private npcIsInteracting: boolean = false;
 
   constructor() {
     super("Preloader");
@@ -43,6 +46,10 @@ export default class Preloader extends Scene {
       frameWidth: 16,
       frameHeight: 32,
     });
+    this.load.spritesheet("npc_log", "/assets/log.png", {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
   }
   create() {
     const map = this.make.tilemap({ key: "map" });
@@ -61,7 +68,7 @@ export default class Preloader extends Scene {
     // Set the starting position
     const startPosition = { x: 130, y: 80 };
 
-    this.dialogueBox = new DialogueBox(this, 50, 350, 850, 100);
+    this.dialogueBox = new DialogueBox(this, 50, 330, 850, 130);
     this.add.existing(this.dialogueBox);
     this.dialogueBox.show("Welcome to your new world!");
 
@@ -77,6 +84,46 @@ export default class Preloader extends Scene {
         },
       ],
     });
+
+    // Walk aimation for NPC
+    this.anims.create({
+      key: "npc_walk_down",
+      frames: this.anims.generateFrameNumbers("npc_log", { start: 0, end: 3 }),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "npc_walk_left",
+      frames: this.anims.generateFrameNumbers("npc_log", {
+        start: 18,
+        end: 21,
+      }),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "npc_walk_right",
+      frames: this.anims.generateFrameNumbers("npc_log", {
+        start: 12,
+        end: 15,
+      }),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "npc_walk_up",
+      frames: this.anims.generateFrameNumbers("npc_log", {
+        start: 6,
+        end: 9,
+      }),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    this.addNPCLog();
 
     // Set up movement event listeners
     this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
@@ -123,6 +170,100 @@ export default class Preloader extends Scene {
           speed: 4,
         });
       }
+    });
+  }
+
+  private lastDirection: string = "down";
+
+  private addNPCLog(): void {
+    const startGridPosition = { x: 147, y: 70 }; // Grid coordinates
+    const npcLog = this.add.sprite(0, 0, "npc_log");
+
+    this.gridEngine.addCharacter({
+      id: "npc_log",
+      sprite: npcLog,
+      startPosition: startGridPosition,
+      speed: 4,
+    });
+
+    // Initialize NPC facing down
+    // npcLog.play("npc_walk_down");
+
+    // Listen to GridEngine movement events
+    this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
+      if (charId === "npc_log") {
+        this.lastDirection = direction;
+        npcLog.play(`npc_walk_${direction}`);
+      }
+    });
+    this.gridEngine.movementStopped().subscribe(({ charId }) => {
+      if (charId === "npc_log") {
+        npcLog.anims.stop();
+        // Set frame based on last direction
+        switch (this.lastDirection) {
+          case "up":
+            npcLog.setFrame(6);
+            break;
+          case "down":
+            npcLog.setFrame(0);
+            break;
+          case "left":
+            npcLog.setFrame(13);
+            break;
+          case "right":
+            npcLog.setFrame(8);
+            break;
+        }
+      }
+    });
+
+    // Setup random movement via GridEngine
+    this.time.addEvent({
+      delay: 1000,
+      callback: () => {
+        // if (this.npcIsInteracting) {
+        //   return; // Prevent movement during interaction
+        // }
+        const directions = ["up", "down", "left", "right"];
+        const randomDirection = Phaser.Utils.Array.GetRandom(directions);
+
+        const movementRange = 3; // Number of tiles to move from start position in any direction
+
+        const currentPos = this.gridEngine.getPosition("npc_log");
+
+        let newX = currentPos.x;
+        let newY = currentPos.y;
+
+        switch (randomDirection) {
+          case "up":
+            newY = currentPos.y - movementRange;
+            break;
+          case "down":
+            newY = currentPos.y + movementRange;
+            break;
+          case "left":
+            newX = currentPos.x - movementRange;
+            break;
+          case "right":
+            newX = currentPos.x + movementRange;
+            break;
+        }
+
+        // Clamp new position within movement boundaries around start
+        const minX = startGridPosition.x - movementRange;
+        const maxX = startGridPosition.x + movementRange;
+        const minY = startGridPosition.y - movementRange;
+        const maxY = startGridPosition.y + movementRange;
+
+        newX = Phaser.Math.Clamp(newX, minX, maxX);
+        newY = Phaser.Math.Clamp(newY, minY, maxY);
+
+        // If new position is different, move NPC
+        if (newX !== currentPos.x || newY !== currentPos.y) {
+          this.gridEngine.moveTo("npc_log", { x: newX, y: newY });
+        }
+      },
+      loop: true,
     });
   }
 
@@ -255,6 +396,23 @@ export default class Preloader extends Scene {
       (targetPosition.x === 205 && targetPosition.y === 66)
     ) {
       this.dialogueBox.show("Glad they are not placed on Soul Soil..");
+    }
+    const npcGridPosition = this.gridEngine.getPosition("npc_log");
+    const distance = Phaser.Math.Distance.Between(
+      targetPosition.x,
+      targetPosition.y,
+      npcGridPosition.x,
+      npcGridPosition.y
+    );
+
+    if (distance <= 1.5) {
+      this.npcIsInteracting = true;
+      const prompt = window.prompt("Talk to groot: ");
+      if (prompt !== null) {
+        Ai_response_log(prompt).then((response: any) => {
+          this.dialogueBox.show(response);
+        });
+      }
     }
   }
 

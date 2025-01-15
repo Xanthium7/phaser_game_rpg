@@ -28,7 +28,7 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
     this.add(this.background);
 
     this.text = scene.add.text(20, 20, "", {
-      font: "18px Arial",
+      font: "16px Arial",
       fontStyle: "bold",
       fontFamily: "",
       color: "#000",
@@ -69,7 +69,9 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
     });
   }
 
-  public show(message: string) {
+  private onCloseCallback: (() => void) | null = null;
+
+  public show(message: string, onClose?: () => void): void {
     if (this.isVisible) {
       return;
     }
@@ -90,6 +92,11 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
       ease: "Power2",
       onComplete: () => {
         this.startTyping();
+
+        if (this.onCloseCallback) {
+          this.onCloseCallback();
+          this.onCloseCallback = null;
+        }
       },
     });
   }
