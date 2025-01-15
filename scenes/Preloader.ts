@@ -2,6 +2,8 @@ import { GridEngine, Direction } from "grid-engine";
 import * as Phaser from "phaser";
 import { Scene } from "phaser";
 import DialogueBox from "./DialogueBox";
+import { Ai_response_log } from "@/actions/actions";
+// import { Ai_response } from "@/actions/actions";
 
 // to prevent chat controls from messing with game controls
 declare global {
@@ -217,7 +219,7 @@ export default class Preloader extends Scene {
 
     // Setup random movement via GridEngine
     this.time.addEvent({
-      delay: 500,
+      delay: 1000,
       callback: () => {
         // if (this.npcIsInteracting) {
         //   return; // Prevent movement during interaction
@@ -404,8 +406,13 @@ export default class Preloader extends Scene {
     );
 
     if (distance <= 1.5) {
-      this.npcIsInteracting = true; // Set interaction flag
-      this.dialogueBox.show("Hello! I'm Groot");
+      this.npcIsInteracting = true;
+      const prompt = window.prompt("Talk to groot: ");
+      if (prompt !== null) {
+        Ai_response_log(prompt).then((response: any) => {
+          this.dialogueBox.show(response);
+        });
+      }
     }
   }
 
