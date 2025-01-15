@@ -68,7 +68,7 @@ export default class Preloader extends Scene {
     // Set the starting position
     const startPosition = { x: 130, y: 80 };
 
-    this.dialogueBox = new DialogueBox(this, 50, 350, 850, 100);
+    this.dialogueBox = new DialogueBox(this, 50, 330, 850, 130);
     this.add.existing(this.dialogueBox);
     this.dialogueBox.show("Welcome to your new world!");
 
