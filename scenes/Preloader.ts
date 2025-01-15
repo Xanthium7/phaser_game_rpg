@@ -189,13 +189,13 @@ export default class Preloader extends Scene {
 
     // Listen to GridEngine movement events
     this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
-      if (charId === "npc_log" && !this.npcIsInteracting) {
+      if (charId === "npc_log") {
         this.lastDirection = direction;
         npcLog.play(`npc_walk_${direction}`);
       }
     });
     this.gridEngine.movementStopped().subscribe(({ charId }) => {
-      if (charId === "npc_log" && !this.npcIsInteracting) {
+      if (charId === "npc_log") {
         npcLog.anims.stop();
         // Set frame based on last direction
         switch (this.lastDirection) {
@@ -219,9 +219,9 @@ export default class Preloader extends Scene {
     this.time.addEvent({
       delay: 500,
       callback: () => {
-        if (this.npcIsInteracting) {
-          return; // Prevent movement during interaction
-        }
+        // if (this.npcIsInteracting) {
+        //   return; // Prevent movement during interaction
+        // }
         const directions = ["up", "down", "left", "right"];
         const randomDirection = Phaser.Utils.Array.GetRandom(directions);
 
@@ -403,15 +403,9 @@ export default class Preloader extends Scene {
       npcGridPosition.y
     );
 
-    if (distance <= 1.5 && !this.npcIsInteracting) {
+    if (distance <= 1.5) {
       this.npcIsInteracting = true; // Set interaction flag
-      this.dialogueBox.show(
-        "Hello! I'm the Log NPC. How can I assist you today?",
-        () => {
-          this.npcIsInteracting = false; // Reset interaction flag
-          // Optionally, resume NPC movement or other actions here
-        }
-      );
+      this.dialogueBox.show("Hello! I'm Groot");
     }
   }
 
