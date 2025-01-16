@@ -16,7 +16,7 @@ export default class Preloader extends Scene {
   private gridEngine!: GridEngine;
   private socket!: SocketIOClient.Socket;
   private shiftKey!: Phaser.Input.Keyboard.Key;
-
+  private name!: string;
   private players: { [id: string]: Phaser.GameObjects.Sprite } = {};
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private nameTexts: { [id: string]: Phaser.GameObjects.Text } = {};
@@ -409,7 +409,7 @@ export default class Preloader extends Scene {
       this.npcIsInteracting = true;
       const prompt = window.prompt("Talk to groot: ");
       if (prompt !== null) {
-        Ai_response_log(prompt).then((response: any) => {
+        Ai_response_log(prompt, this.name).then((response: any) => {
           this.dialogueBox.show(response);
         });
       }
@@ -542,6 +542,7 @@ export default class Preloader extends Scene {
     this.players[playerInfo.id] = sprite;
 
     const playerName = playerInfo.name || "Chigga";
+    this.name = playerName;
 
     //These values dodnt matter cause we set it in the update function
     const nameText = this.add
