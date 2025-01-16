@@ -183,7 +183,7 @@ export default class Preloader extends Scene {
       id: "npc_log",
       sprite: npcLog,
       startPosition: startGridPosition,
-      speed: 4,
+      speed: 2,
     });
 
     // Initialize NPC facing down
@@ -219,7 +219,7 @@ export default class Preloader extends Scene {
 
     // Setup random movement via GridEngine
     this.time.addEvent({
-      delay: 1000,
+      delay: 3000,
       callback: () => {
         // if (this.npcIsInteracting) {
         //   return; // Prevent movement during interaction
@@ -227,7 +227,7 @@ export default class Preloader extends Scene {
         const directions = ["up", "down", "left", "right"];
         const randomDirection = Phaser.Utils.Array.GetRandom(directions);
 
-        const movementRange = 3; // Number of tiles to move from start position in any direction
+        const movementRange = 2; // Number of tiles to move from start position in any direction
 
         const currentPos = this.gridEngine.getPosition("npc_log");
 
@@ -405,7 +405,7 @@ export default class Preloader extends Scene {
       npcGridPosition.y
     );
 
-    if (distance <= 1.5) {
+    if (distance <= 1) {
       this.npcIsInteracting = true;
       const prompt = window.prompt("Talk to groot: ");
       if (prompt !== null) {
