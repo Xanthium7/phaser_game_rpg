@@ -10,6 +10,8 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
   private fullText: string = "";
   private currentText: string = "";
   private typingIndex: number = 0;
+  private messageQueue: string[] = [];
+  private currentMessageIndex: number = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -53,7 +55,7 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
         if (this.typingEvent) {
           this.completeTyping();
         } else {
-          this.hide();
+          this.showNextMessage();
         }
       }
     });
@@ -63,7 +65,7 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
         if (this.typingEvent) {
           this.completeTyping();
         } else {
-          this.hide();
+          this.showNextMessage();
         }
       }
     });
@@ -76,29 +78,64 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
       return;
     }
 
-    this.fullText = `${message}\n\nPress SPACE or Click to Continue.`;
-    this.currentText = "";
-    this.text.setText(this.currentText);
-    this.setVisible(true);
-    this.setAlpha(0);
-    this.isVisible = true;
-    this.typingIndex = 0;
+    this.messageQueue = this.splitMessage(message, 50);
+    this.currentMessageIndex = 0;
+    this.onCloseCallback = onClose || null;
 
-    // Fade in the DialogueBox
-    this.scene.tweens.add({
-      targets: this,
-      alpha: 1,
-      duration: 50,
-      ease: "Power2",
-      onComplete: () => {
-        this.startTyping();
+    this.showNextMessage();
+  }
 
-        if (this.onCloseCallback) {
-          this.onCloseCallback();
-          this.onCloseCallback = null;
-        }
-      },
-    });
+  private showNextMessage(): void {
+    if (this.currentMessageIndex < this.messageQueue.length) {
+      this.fullText = `${
+        this.messageQueue[this.currentMessageIndex]
+      }\n\nPress SPACE or Click to Continue.`;
+      this.currentText = "";
+      this.text.setText(this.currentText);
+      this.setVisible(true);
+      this.setAlpha(0);
+      this.isVisible = true;
+      this.typingIndex = 0;
+
+      // Fade in the DialogueBox
+      this.scene.tweens.add({
+        targets: this,
+        alpha: 1,
+        duration: 50,
+        ease: "Power2",
+        onComplete: () => {
+          this.startTyping();
+        },
+      });
+
+      this.currentMessageIndex++;
+    } else {
+      this.hide();
+      if (this.onCloseCallback) {
+        this.onCloseCallback();
+        this.onCloseCallback = null;
+      }
+    }
+  }
+
+  private splitMessage(message: string, maxWords: number): string[] {
+    const words = message.split(" ");
+    const chunks: string[] = [];
+    let chunk: string[] = [];
+
+    for (const word of words) {
+      if (chunk.length + 1 > maxWords) {
+        chunks.push(chunk.join(" "));
+        chunk = [];
+      }
+      chunk.push(word);
+    }
+
+    if (chunk.length > 0) {
+      chunks.push(chunk.join(" "));
+    }
+
+    return chunks;
   }
 
   private startTyping() {
