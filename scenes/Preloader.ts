@@ -408,7 +408,18 @@ export default class Preloader extends Scene {
     if (distance <= 1) {
       this.npcIsInteracting = true;
       const prompt = window.prompt("Talk to groot: ");
-      if (prompt !== null) {
+      if (prompt?.startsWith("go to")) {
+      }
+      // Extract coordinates from the prompt
+      const coordinates = prompt?.split(" ").slice(2);
+      if (coordinates?.length === 2) {
+        const x = parseInt(coordinates[0], 10);
+        const y = parseInt(coordinates[1], 10);
+        if (!isNaN(x) && !isNaN(y)) {
+          this.gridEngine.moveTo("npc_log", { x, y });
+          this.dialogueBox.show(`NPC is moving to (${x}, ${y})`);
+        }
+      } else if (prompt !== null) {
         Ai_response_log(prompt, this.name).then((response: any) => {
           this.dialogueBox.show(response);
         });

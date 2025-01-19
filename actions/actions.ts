@@ -17,8 +17,10 @@ export async function Ai_response_log(
     select: {
       log_groot: true,
     },
+    take: 1,
   });
-  const groot_memory = memory[0]?.log_groot;
+  const groot_memory = memory[0]?.log_groot?.slice(0, 2000);
+  console.log(groot_memory);
 
   try {
     const chatCompletion = await groq.chat.completions.create({
@@ -46,6 +48,7 @@ export async function Ai_response_log(
         },
       ],
       model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
     });
 
     const response = chatCompletion.choices[0]?.message?.content || "";
@@ -65,7 +68,7 @@ export async function Ai_response_log(
     // console.log(existingHistory?.log_groot);
 
     if (existingHistory) {
-      const updatedLog = existingHistory.log_groot + logEntry;
+      const updatedLog = logEntry + existingHistory.log_groot;
       await prisma.history.update({
         where: { id: existingHistory.id },
         data: { log_groot: updatedLog },
