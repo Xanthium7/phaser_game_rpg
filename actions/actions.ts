@@ -6,6 +6,13 @@ import Groq from "groq-sdk";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+const globalPlacesDictionary: { [key: string]: { x: number; y: number } } = {
+  "Chill-Mart": { x: 118, y: 50 },
+  DroopyVille: { x: 162, y: 32 },
+  "Public Library": { x: 46, y: 78 },
+  // Add more places as needed
+};
+
 export async function Ai_response_log(
   prompt: string,
   username: string
@@ -47,7 +54,7 @@ export async function Ai_response_log(
           content: prompt,
         },
       ],
-      model: "llama-3.3-70b-versatile",
+      model: "llama-3.1-8b-instant",
       temperature: 0.7,
     });
 
@@ -86,5 +93,53 @@ export async function Ai_response_log(
   } catch (error) {
     console.error("Ai_response Error:", error);
     return "I'm having trouble understanding right now.";
+  }
+}
+
+export async function getNpcAction(username: string): Promise<string> {
+  const memory = await prisma.history.findMany({
+    where: {
+      username: username,
+    },
+    select: {
+      log_groot: true,
+    },
+    take: 1,
+  });
+  const groot_memory = memory[0]?.log_groot?.slice(0, 2000);
+  console.log(groot_memory);
+
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content:
+            groot_log_prompt +
+            `
+        Your task is to decide the NPC's next action based on the following places and current memory.
+
+        PLACES:
+        ${JSON.stringify(globalPlacesDictionary)}
+
+        MEMORY CONTEXT:
+        ${groot_memory}
+
+        Decide where the NPC should go next and respond with the place name., 
+        IMPORTANT:  RETURN ONLY THE PLACE NAME excatly as it is in the dictionary.
+        `,
+        },
+      ],
+      model: "llama-3.1-8b-instant",
+      temperature: 0.7,
+    });
+
+    const response = chatCompletion.choices[0]?.message?.content?.trim() || "";
+    console.log("NPC Decision:", response);
+
+    return response;
+  } catch (error) {
+    console.error("getNpcAction Error:", error);
+    return "No Action";
   }
 }

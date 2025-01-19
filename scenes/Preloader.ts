@@ -2,7 +2,7 @@ import { GridEngine, Direction } from "grid-engine";
 import * as Phaser from "phaser";
 import { Scene } from "phaser";
 import DialogueBox from "./DialogueBox";
-import { Ai_response_log } from "@/actions/actions";
+import { Ai_response_log, getNpcAction } from "@/actions/actions";
 // import { Ai_response } from "@/actions/actions";
 
 // to prevent chat controls from messing with game controls
@@ -11,6 +11,14 @@ declare global {
     isChatFocused: boolean;
   }
 }
+
+// Define a global dictionary of places
+const globalPlacesDictionary: { [key: string]: { x: number; y: number } } = {
+  "Chill-Mart": { x: 124, y: 50 },
+  DroopyVille: { x: 168, y: 32 },
+  "Public Library": { x: 46, y: 58 },
+  // Add more places as needed
+};
 
 export default class Preloader extends Scene {
   private gridEngine!: GridEngine;
@@ -23,6 +31,8 @@ export default class Preloader extends Scene {
   private characterGridWidths: { [id: string]: number } = {};
   private dialogueBox!: DialogueBox;
   private npcIsInteracting: boolean = false;
+  private npcDecisionInterval!: Phaser.Time.TimerEvent;
+  private currentNpcAction: string | null = null; // Track current NPC action
 
   constructor() {
     super("Preloader");
@@ -125,6 +135,9 @@ export default class Preloader extends Scene {
 
     this.addNPCLog();
 
+    // Initialize AI-controlled NPC actions
+    this.initializeNpcAgent();
+
     // Set up movement event listeners
     this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
       const sprite = this.players[charId];
@@ -183,7 +196,7 @@ export default class Preloader extends Scene {
       id: "npc_log",
       sprite: npcLog,
       startPosition: startGridPosition,
-      speed: 2,
+      speed: 4,
     });
 
     // Initialize NPC facing down
@@ -196,7 +209,7 @@ export default class Preloader extends Scene {
         npcLog.play(`npc_walk_${direction}`);
       }
     });
-    this.gridEngine.movementStopped().subscribe(({ charId }) => {
+    this.gridEngine.movementStopped().subscribe(async ({ charId }) => {
       if (charId === "npc_log") {
         npcLog.anims.stop();
         // Set frame based on last direction
@@ -214,57 +227,84 @@ export default class Preloader extends Scene {
             npcLog.setFrame(8);
             break;
         }
+
+        if (this.currentNpcAction) {
+          // Update memory after action
+          await Ai_response_log(
+            `groot completed the ${this.currentNpcAction}`,
+            charId
+          );
+          this.currentNpcAction = null;
+        }
+
+        // Resume the decision timer
+        this.npcDecisionInterval.paused = false;
       }
     });
 
-    // Setup random movement via GridEngine
-    this.time.addEvent({
-      delay: 3000,
-      callback: () => {
-        // if (this.npcIsInteracting) {
-        //   return; // Prevent movement during interaction
-        // }
-        const directions = ["up", "down", "left", "right"];
-        const randomDirection = Phaser.Utils.Array.GetRandom(directions);
+    // Remove manual movement logic
+    // this.time.addEvent({
+    //   delay: 3000,
+    //   callback: () => {
+    //     // ...existing random movement code...
+    //   },
+    //   loop: true,
+    // });
+  }
 
-        const movementRange = 2; // Number of tiles to move from start position in any direction
-
-        const currentPos = this.gridEngine.getPosition("npc_log");
-
-        let newX = currentPos.x;
-        let newY = currentPos.y;
-
-        switch (randomDirection) {
-          case "up":
-            newY = currentPos.y - movementRange;
-            break;
-          case "down":
-            newY = currentPos.y + movementRange;
-            break;
-          case "left":
-            newX = currentPos.x - movementRange;
-            break;
-          case "right":
-            newX = currentPos.x + movementRange;
-            break;
-        }
-
-        // Clamp new position within movement boundaries around start
-        const minX = startGridPosition.x - movementRange;
-        const maxX = startGridPosition.x + movementRange;
-        const minY = startGridPosition.y - movementRange;
-        const maxY = startGridPosition.y + movementRange;
-
-        newX = Phaser.Math.Clamp(newX, minX, maxX);
-        newY = Phaser.Math.Clamp(newY, minY, maxY);
-
-        // If new position is different, move NPC
-        if (newX !== currentPos.x || newY !== currentPos.y) {
-          this.gridEngine.moveTo("npc_log", { x: newX, y: newY });
-        }
-      },
+  // Initialize the agentic system for the NPC
+  private initializeNpcAgent(): void {
+    this.npcDecisionInterval = this.time.addEvent({
+      delay: 10000, // NPC decides every 10 seconds
+      callback: this.decideNpcAction,
+      callbackScope: this,
       loop: true,
     });
+  }
+
+  // Function to decide NPC's next action
+  private async decideNpcAction(): Promise<void> {
+    const npcName = "npc_log";
+    console.log(`Deciding action for ${npcName}`);
+
+    try {
+      // Pause the decision timer
+      this.npcDecisionInterval.paused = true;
+
+      const action = await getNpcAction(npcName);
+      console.log(`Action received for ${npcName}: ${action}`);
+
+      if (globalPlacesDictionary[action]) {
+        this.currentNpcAction = action;
+        const targetPosition = globalPlacesDictionary[action];
+        console.log(
+          `Moving ${npcName} to (${targetPosition.x}, ${targetPosition.y})`
+        );
+
+        // Update memory before action
+        await Ai_response_log(`groot chooses to do ${action}`, npcName);
+
+        this.gridEngine.moveTo(npcName, {
+          x: targetPosition.x,
+          y: targetPosition.y,
+        });
+        this.dialogueBox.show(
+          `NPC is moving to ${action} at (${targetPosition.x}, ${targetPosition.y})`
+        );
+      } else {
+        this.dialogueBox.show(`NPC received an unknown action: ${action}.`);
+        console.warn(`Unknown action received for NPC: ${action}`);
+        // Resume the decision timer if action is unknown
+        this.npcDecisionInterval.paused = false;
+      }
+    } catch (error) {
+      console.error(`Error in decideNpcAction for ${npcName}:`, error);
+      this.dialogueBox.show(
+        "NPC encountered an error while deciding its action."
+      );
+      // Resume the decision timer on error
+      this.npcDecisionInterval.paused = false;
+    }
   }
 
   private handleVideoCall(): void {
@@ -406,23 +446,31 @@ export default class Preloader extends Scene {
     );
 
     if (distance <= 1) {
-      this.npcIsInteracting = true;
-      const prompt = window.prompt("Talk to groot: ");
-      if (prompt?.startsWith("go to")) {
+      // Pause the NPC decision timer
+      this.npcDecisionInterval.paused = true;
+
+      // Stop NPC movement if it's moving
+      if (this.gridEngine.isMoving("npc_log")) {
+        this.gridEngine.stopMovement("npc_log");
       }
-      // Extract coordinates from the prompt
-      const coordinates = prompt?.split(" ").slice(2);
-      if (coordinates?.length === 2) {
-        const x = parseInt(coordinates[0], 10);
-        const y = parseInt(coordinates[1], 10);
-        if (!isNaN(x) && !isNaN(y)) {
-          this.gridEngine.moveTo("npc_log", { x, y });
-          this.dialogueBox.show(`NPC is moving to (${x}, ${y})`);
-        }
-      } else if (prompt !== null) {
-        Ai_response_log(prompt, this.name).then((response: any) => {
+
+      console.log("Talking to Groot...");
+
+      // Initiate dialogue prompt
+      const prompt = window.prompt("Talk to Groot: ");
+      if (prompt !== null) {
+        Ai_response_log(prompt, this.name).then(async (response: any) => {
           this.dialogueBox.show(response);
+
+          // // Update memory after interaction
+          // await Ai_response_log(`groot completed the interaction`, "groot");
+
+          // Resume the decision timer
+          this.npcDecisionInterval.paused = false;
         });
+      } else {
+        // Resume the decision timer if prompt is canceled
+        this.npcDecisionInterval.paused = false;
       }
     }
   }
