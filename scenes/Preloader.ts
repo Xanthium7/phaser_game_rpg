@@ -291,6 +291,30 @@ export default class Preloader extends Scene {
         this.dialogueBox.show(
           `NPC is moving to ${action} at (${targetPosition.x}, ${targetPosition.y})`
         );
+      } else if (action === "LOITER") {
+        // Make the NPC move in a circle for 3 seconds
+        const npcId = "npc_log";
+        const center = this.gridEngine.getPosition(npcId);
+        const radius = 2;
+
+        // Define the circle path
+        const path = [
+          { x: center.x + radius, y: center.y },
+          { x: center.x, y: center.y + radius },
+          { x: center.x - radius, y: center.y },
+          { x: center.x, y: center.y - radius },
+        ];
+
+        // Move through the path
+        for (const position of path) {
+          await this.gridEngine.moveTo(npcId, position);
+        }
+
+        // Wait to complete 3 seconds duration
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
+        // Resume the decision timer
+        this.npcDecisionInterval.paused = false;
       } else {
         this.dialogueBox.show(`NPC received an unknown action: ${action}.`);
         console.warn(`Unknown action received for NPC: ${action}`);
@@ -448,11 +472,6 @@ export default class Preloader extends Scene {
     if (distance <= 1) {
       // Pause the NPC decision timer
       this.npcDecisionInterval.paused = true;
-
-      // Stop NPC movement if it's moving
-      if (this.gridEngine.isMoving("npc_log")) {
-        this.gridEngine.stopMovement("npc_log");
-      }
 
       console.log("Talking to Groot...");
 

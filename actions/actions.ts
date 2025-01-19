@@ -107,7 +107,7 @@ export async function getNpcAction(username: string): Promise<string> {
     take: 1,
   });
   const groot_memory = memory[0]?.log_groot?.slice(0, 2000);
-  console.log(groot_memory);
+  // console.log(groot_memory);
 
   try {
     const chatCompletion = await groq.chat.completions.create({
