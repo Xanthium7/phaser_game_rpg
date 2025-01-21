@@ -2,7 +2,11 @@ import { GridEngine, Direction } from "grid-engine";
 import * as Phaser from "phaser";
 import { Scene } from "phaser";
 import DialogueBox from "./DialogueBox";
-import { Ai_response_log, getNpcAction } from "@/actions/actions";
+import {
+  Ai_response_log,
+  getNpcAction,
+  update_Groot_memory,
+} from "@/actions/actions";
 // import { Ai_response } from "@/actions/actions";
 
 // to prevent chat controls from messing with game controls
@@ -13,10 +17,12 @@ declare global {
 }
 
 // Define a global dictionary of places
-const globalPlacesDictionary: { [key: string]: { x: number; y: number } } = {
-  "Chill-Mart": { x: 124, y: 50 },
-  DroopyVille: { x: 168, y: 32 },
-  "Public Library": { x: 46, y: 58 },
+const globalPlaces: { [key: string]: { x: number; y: number } } = {
+  CHILLMART: { x: 124, y: 50 },
+  DROOPYVILLE: { x: 168, y: 32 },
+  LIBRARY: { x: 46, y: 58 },
+  MART: { x: 118, y: 50 },
+  PARK: { x: 118, y: 50 },
   // Add more places as needed
 };
 
@@ -228,16 +234,6 @@ export default class Preloader extends Scene {
             break;
         }
 
-        if (this.currentNpcAction) {
-          // Update memory after action
-          await Ai_response_log(
-            `groot completed the ${this.currentNpcAction}`,
-            charId
-          );
-          this.currentNpcAction = null;
-        }
-
-        // Resume the decision timer
         this.npcDecisionInterval.paused = false;
       }
     });
@@ -271,50 +267,57 @@ export default class Preloader extends Scene {
       // Pause the decision timer
       this.npcDecisionInterval.paused = true;
 
-      const action = await getNpcAction(npcName);
+      const action = await getNpcAction(this.name);
       console.log(`Action received for ${npcName}: ${action}`);
 
-      if (globalPlacesDictionary[action]) {
+      if (globalPlaces[action]) {
         this.currentNpcAction = action;
-        const targetPosition = globalPlacesDictionary[action];
+        const targetPosition = globalPlaces[action];
         console.log(
           `Moving ${npcName} to (${targetPosition.x}, ${targetPosition.y})`
         );
 
         // Update memory before action
-        await Ai_response_log(`groot chooses to do ${action}`, npcName);
 
         this.gridEngine.moveTo(npcName, {
           x: targetPosition.x,
           y: targetPosition.y,
         });
+        // For debugginf purposes
         this.dialogueBox.show(
           `NPC is moving to ${action} at (${targetPosition.x}, ${targetPosition.y})`
         );
-      } else if (action === "LOITER") {
-        // Make the NPC move in a circle for 3 seconds
-        const npcId = "npc_log";
-        const center = this.gridEngine.getPosition(npcId);
-        const radius = 2;
-
-        // Define the circle path
-        const path = [
-          { x: center.x + radius, y: center.y },
-          { x: center.x, y: center.y + radius },
-          { x: center.x - radius, y: center.y },
-          { x: center.x, y: center.y - radius },
-        ];
-
-        // Move through the path
-        for (const position of path) {
-          await this.gridEngine.moveTo(npcId, position);
-        }
-
-        // Wait to complete 3 seconds duration
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-
-        // Resume the decision timer
         this.npcDecisionInterval.paused = false;
+        await update_Groot_memory(
+          `\n*Groot has went  to ${action}*\n`,
+          this.name
+        );
+      } else if (action === "IDLE") {
+        this.dialogueBox.show(`NPC is idle.`);
+        // Resume the decision timer if action is IDLE
+        this.npcDecisionInterval.paused = false;
+        await update_Groot_memory(`\n*Groot stayed idle*\n`, this.name);
+      } else if (action === "WANDER") {
+        this.dialogueBox.show(`NPC is wandering.`);
+        this.gridEngine.moveRandomly("npc_log", 500);
+
+        await update_Groot_memory(
+          `\n*Groot wandered around that place*\n`,
+          this.name
+        );
+        this.npcDecisionInterval.paused = false;
+      } else if (action === "PLAYER") {
+        this.dialogueBox.show(`NPC is coming to the ${this.name}.`);
+        const playerPosition = this.gridEngine.getPosition(this.socket.id);
+        this.gridEngine.moveTo("npc_log", {
+          x: playerPosition.x,
+          y: playerPosition.y,
+        });
+        this.npcDecisionInterval.paused = false;
+        await update_Groot_memory(
+          `\n*Groot came to the ${this.name}*\n`,
+          this.name
+        );
       } else {
         this.dialogueBox.show(`NPC received an unknown action: ${action}.`);
         console.warn(`Unknown action received for NPC: ${action}`);

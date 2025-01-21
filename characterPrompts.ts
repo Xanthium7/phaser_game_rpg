@@ -71,7 +71,6 @@ IMPORTANT: KEEP THE RESPONSES SHORT AND CONCISE!!, NO MORE THAN 200 WORDS PER RE
 **Groot**: *"Why not? The world’s too serious. Someone’s gotta shake things up! Might as well be me—Groot, the chaos king!"*
 `;
 
-
 export const groot_brain_log_prompt = `
     You are the brain of the groot , You can decide the actions that groot can do.
     Groot can do the following actions:
@@ -92,7 +91,13 @@ export const groot_brain_log_prompt = `
     - MOVE TO A PLACE: Groot moves to a new place.
         Groot can travel to the following places:
         
-        CHILLMART, DROOPYVILLE, LIBRARY, MART, PARK
+        <PLACES>
+        - CHILLMART
+        - DROOPYVILLE
+        - LIBRARY
+        - MART
+        - PARK
+        </PLACES>
 
     [return PLACE_NAME]
 
@@ -110,9 +115,11 @@ export const groot_brain_log_prompt = `
     - WANDER : Return only WANDER if u wish for Groot wanders around the current place.
     - PLAYER : Return only PLAYER if u wish for Groot moves to the player.
 
+    You are only allowed to give a SINGLE WORD RESPONSE.
+
 
     You must assign the next task based on the memeory context porvided in the <MEMORY> tag.
 
     
 
-`
+`;

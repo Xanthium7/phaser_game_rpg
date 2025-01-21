@@ -130,9 +130,64 @@ export async function getNpcAction(username: string): Promise<string> {
     const response = chatCompletion.choices[0]?.message?.content?.trim() || "";
     console.log("NPC Decision:", response);
 
-    return response;
+    const logEntry = [
+      "CHILLMART",
+      "DROOPYVILLE",
+      "LIBRARY",
+      "MART",
+      "PARK",
+      "PLAYER",
+    ].includes(response.toUpperCase())
+      ? `\n*Groot decided to go to ${response}*\n`
+      : `\n*Groot decides to do ${response}*\n`;
+
+    const existingHistory = await prisma.history.findFirst({
+      where: {
+        username: username,
+      },
+    });
+
+    if (existingHistory) {
+      const updatedLog = logEntry + existingHistory.log_groot;
+      await prisma.history.update({
+        where: { id: existingHistory.id },
+        data: { log_groot: updatedLog },
+      });
+    } else {
+      await prisma.history.create({
+        data: {
+          username: username,
+          log_groot: logEntry,
+        },
+      });
+    }
+
+    return response.toUpperCase();
   } catch (error) {
     console.error("getNpcAction Error:", error);
     return "No Action";
+  }
+}
+
+export async function update_Groot_memory(key: string, username: string) {
+  const existingHistory = await prisma.history.findFirst({
+    where: {
+      username: username,
+    },
+  });
+
+  if (existingHistory) {
+    const updatedLog = key + existingHistory.log_groot;
+    await prisma.history.update({
+      where: { id: existingHistory.id },
+      data: { log_groot: updatedLog },
+    });
+  } else {
+    await prisma.history.create({
+      data: {
+        username: username,
+        log_groot: key,
+      },
+    });
   }
 }
