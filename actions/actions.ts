@@ -1,6 +1,6 @@
 "use server";
 
-import { groot_log_prompt } from "@/characterPrompts";
+import { groot_brain_log_prompt, groot_log_prompt } from "@/characterPrompts";
 import { prisma } from "@/lib/db";
 import Groq from "groq-sdk";
 
@@ -115,18 +115,11 @@ export async function getNpcAction(username: string): Promise<string> {
         {
           role: "system",
           content:
-            groot_log_prompt +
+            groot_brain_log_prompt +
             `
-        Your task is to decide the NPC's next action based on the following places and current memory.
-
-        PLACES:
-        ${JSON.stringify(globalPlacesDictionary)}
-
-        MEMORY CONTEXT:
-        ${groot_memory}
-
-        Decide where the NPC should go next and respond with the place name., 
-        IMPORTANT:  RETURN ONLY THE PLACE NAME excatly as it is in the dictionary.
+    <MEMORY>
+    ${groot_memory}
+    </MEMORY>
         `,
         },
       ],
