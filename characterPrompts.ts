@@ -111,11 +111,17 @@ export const groot_brain_log_prompt = `
 
     - Provide reasoning for your decision in the format:
         ACTION [REASONING]
-        Example:
-        PLAYER [Groot moves to the player because he was curious about the player's actions]
-        WANDER [Groot wanders around the current location to search for lost acorns]
+        Examples:
         IDLE [Groot stays idle because he is tired]
+        WANDER [Groot wanders around the current location to search for lost acorns]
+        PLAYER [Groot moves to the player because he was curious about the player's actions]
+        CHILLMART [Groot decides to visit CHILLMART to check out the latest acorn deals]
+        DROOPYVILLE [Groot moves to DROOPYVILLE to see what's causing the commotion]
+        LIBRARY [Groot goes to the LIBRARY to read up on more mischief ideas]
+        MART [Groot heads to the MART to stock up on his favorite snacks]
+        PARK [Groot decides to explore the PARK for some new adventures]
 
     - Base your decisions on the memory context provided in the <MEMORY> tag.
 
+    
 `;

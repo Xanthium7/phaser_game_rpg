@@ -251,7 +251,7 @@ export default class Preloader extends Scene {
   // Initialize the agentic system for the NPC
   private initializeNpcAgent(): void {
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 1000, // NPC decides every 10 seconds
+      delay: 100, // NPC decides every 1 seconds
       callback: this.decideNpcAction,
       callbackScope: this,
 
@@ -299,9 +299,9 @@ export default class Preloader extends Scene {
         });
 
         // For debugging purposes
-        this.dialogueBox.show(
-          `NPC is moving to ${action} at (${targetPosition.x}, ${targetPosition.y}) because ${reasoning}`
-        );
+        // this.dialogueBox.show(
+        //   `NPC is moving to ${action} at (${targetPosition.x}, ${targetPosition.y}) because ${reasoning}`
+        // );
         this.npcDecisionInterval.paused = false;
       } else if (action === "IDLE") {
         this.dialogueBox.show(`NPC is idle because ${reasoning}.`);
@@ -316,7 +316,7 @@ export default class Preloader extends Scene {
         this.dialogueBox.show(`NPC is wandering because ${reasoning}.`);
         // Update memory with reasoning
         await update_Groot_memory(
-          `\n*Groot wandered around because ${reasoning}*\n`,
+          `\n*Groot finished  wandering  around because ${reasoning}*\n`,
           this.name
         );
 
