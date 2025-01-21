@@ -251,9 +251,10 @@ export default class Preloader extends Scene {
   // Initialize the agentic system for the NPC
   private initializeNpcAgent(): void {
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 10000, // NPC decides every 10 seconds
+      delay: 1000, // NPC decides every 10 seconds
       callback: this.decideNpcAction,
       callbackScope: this,
+
       loop: true,
     });
   }
@@ -267,8 +268,17 @@ export default class Preloader extends Scene {
       // Pause the decision timer
       this.npcDecisionInterval.paused = true;
 
-      const action = await getNpcAction(this.name);
-      console.log(`Action received for ${npcName}: ${action}`);
+      const actionResponse = await getNpcAction(this.name);
+      console.log(`Action response for ${npcName}: ${actionResponse}`);
+
+      // Extract action and reasoning using regex
+      const actionMatch = actionResponse.match(/^(\w+)\s*\[(.+)\]$/);
+      if (!actionMatch) {
+        throw new Error("Invalid action format");
+      }
+
+      const action = actionMatch[1];
+      const reasoning = actionMatch[2];
 
       if (globalPlaces[action]) {
         this.currentNpcAction = action;
@@ -277,50 +287,66 @@ export default class Preloader extends Scene {
           `Moving ${npcName} to (${targetPosition.x}, ${targetPosition.y})`
         );
 
-        // Update memory before action
+        // Update memory with reasoning
+        await update_Groot_memory(
+          `\n*Groot has moved to ${action} because ${reasoning}*\n`,
+          this.name
+        );
 
         this.gridEngine.moveTo(npcName, {
           x: targetPosition.x,
           y: targetPosition.y,
         });
-        // For debugginf purposes
+
+        // For debugging purposes
         this.dialogueBox.show(
-          `NPC is moving to ${action} at (${targetPosition.x}, ${targetPosition.y})`
+          `NPC is moving to ${action} at (${targetPosition.x}, ${targetPosition.y}) because ${reasoning}`
         );
         this.npcDecisionInterval.paused = false;
+      } else if (action === "IDLE") {
+        this.dialogueBox.show(`NPC is idle because ${reasoning}.`);
+        // Update memory with reasoning
         await update_Groot_memory(
-          `\n*Groot has went  to ${action}*\n`,
+          `\n*Groot stayed idle because ${reasoning}*\n`,
           this.name
         );
-      } else if (action === "IDLE") {
-        this.dialogueBox.show(`NPC is idle.`);
         // Resume the decision timer if action is IDLE
         this.npcDecisionInterval.paused = false;
-        await update_Groot_memory(`\n*Groot stayed idle*\n`, this.name);
       } else if (action === "WANDER") {
-        this.dialogueBox.show(`NPC is wandering.`);
-        this.gridEngine.moveRandomly("npc_log", 500);
-
+        this.dialogueBox.show(`NPC is wandering because ${reasoning}.`);
+        // Update memory with reasoning
         await update_Groot_memory(
-          `\n*Groot wandered around that place*\n`,
+          `\n*Groot wandered around because ${reasoning}*\n`,
           this.name
         );
+
+        this.gridEngine.moveRandomly("npc_log", 500);
+
         this.npcDecisionInterval.paused = false;
       } else if (action === "PLAYER") {
-        this.dialogueBox.show(`NPC is coming to the ${this.name}.`);
+        this.dialogueBox.show(
+          `NPC is coming to the player because ${reasoning}.`
+        );
+        // Update memory with reasoning
+        await update_Groot_memory(
+          `\n*Groot came to the player because ${reasoning}*\n`,
+          this.name
+        );
+
         const playerPosition = this.gridEngine.getPosition(this.socket.id);
         this.gridEngine.moveTo("npc_log", {
           x: playerPosition.x,
           y: playerPosition.y,
         });
         this.npcDecisionInterval.paused = false;
-        await update_Groot_memory(
-          `\n*Groot came to the ${this.name}*\n`,
-          this.name
-        );
       } else {
         this.dialogueBox.show(`NPC received an unknown action: ${action}.`);
         console.warn(`Unknown action received for NPC: ${action}`);
+        // Update memory with unknown action
+        await update_Groot_memory(
+          `\n*Groot received an unknown action: ${action}*\n`,
+          this.name
+        );
         // Resume the decision timer if action is unknown
         this.npcDecisionInterval.paused = false;
       }

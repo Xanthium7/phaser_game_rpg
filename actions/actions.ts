@@ -54,7 +54,7 @@ export async function Ai_response_log(
           content: prompt,
         },
       ],
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       temperature: 0.7,
     });
 
@@ -123,7 +123,7 @@ export async function getNpcAction(username: string): Promise<string> {
         `,
         },
       ],
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       temperature: 0.7,
     });
 
