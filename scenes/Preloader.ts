@@ -267,20 +267,8 @@ export default class Preloader extends Scene {
       // Pause decision loop for duration of the current action
       this.npcDecisionInterval.paused = true;
 
-      // Retrieve action from the AI (returns string like "ACTION [reasoning]")
-      const actionResponse = await getNpcAction(this.name);
-      console.log(`Action response for ${npcName}: ${actionResponse}`);
-
-      // Attempt to extract action and reasoning; if fails, default to IDLE
-      const actionMatch = actionResponse.match(/^(\w+)\s*\[([\s\S]+)\]$/);
-      let action: string, reasoning: string;
-      if (actionMatch) {
-        action = actionMatch[1].toUpperCase();
-        reasoning = actionMatch[2].trim();
-      } else {
-        action = "IDLE";
-        reasoning = "no clear instruction received";
-      }
+      const action = await getNpcAction(this.name);
+      console.log(`Action received for ${npcName}: ${action}`);
 
       if (globalPlaces[action]) {
         // Action is to move to a defined location
@@ -289,48 +277,53 @@ export default class Preloader extends Scene {
         console.log(
           `Moving ${npcName} to (${targetPosition.x}, ${targetPosition.y})`
         );
-        await update_Groot_memory(
-          `\n*Groot moves to ${action} because ${reasoning}*`,
-          this.name
-        );
+
+        // Update memory before action
+
         this.gridEngine.moveTo(npcName, {
           x: targetPosition.x,
           y: targetPosition.y,
         });
-      } else if (action === "IDLE") {
-        this.dialogueBox.show(`NPC is idle because ${reasoning}.`);
-        await update_Groot_memory(
-          `\n*Groot stays idle because ${reasoning}*`,
-          this.name
-        );
-      } else if (action === "WANDER") {
-        this.dialogueBox.show(`NPC is wandering because ${reasoning}.`);
-        await update_Groot_memory(
-          `\n*Groot wanders around because ${reasoning}*`,
-          this.name
-        );
-        // moveRandomly function makes the NPC wander for a set duration
-        this.gridEngine.moveRandomly(npcName, 500);
-      } else if (action === "PLAYER") {
+        // For debugginf purposes
         this.dialogueBox.show(
-          `NPC is coming to the player because ${reasoning}.`
+          `NPC is moving to ${action} at (${targetPosition.x}, ${targetPosition.y})`
         );
+        this.npcDecisionInterval.paused = false;
         await update_Groot_memory(
-          `\n*Groot follows the player because ${reasoning}*`,
+          `\n*Groot has went  to ${action}*\n`,
           this.name
         );
+      } else if (action === "IDLE") {
+        this.dialogueBox.show(`NPC is idle.`);
+        // Resume the decision timer if action is IDLE
+        this.npcDecisionInterval.paused = false;
+        await update_Groot_memory(`\n*Groot stayed idle*\n`, this.name);
+      } else if (action === "WANDER") {
+        this.dialogueBox.show(`NPC is wandering.`);
+        this.gridEngine.moveRandomly("npc_log", 500);
+
+        await update_Groot_memory(
+          `\n*Groot wandered around that place*\n`,
+          this.name
+        );
+        this.npcDecisionInterval.paused = false;
+      } else if (action === "PLAYER") {
+        this.dialogueBox.show(`NPC is coming to the ${this.name}.`);
         const playerPosition = this.gridEngine.getPosition(this.socket.id);
         this.gridEngine.moveTo(npcName, {
           x: playerPosition.x,
           y: playerPosition.y,
         });
-      } else {
-        this.dialogueBox.show(`NPC received an unknown action: ${action}.`);
-        console.warn(`Unknown action for NPC: ${action}`);
+        this.npcDecisionInterval.paused = false;
         await update_Groot_memory(
-          `\n*Groot received an unknown action: ${action}*`,
+          `\n*Groot came to the ${this.name}*\n`,
           this.name
         );
+      } else {
+        this.dialogueBox.show(`NPC received an unknown action: ${action}.`);
+        console.warn(`Unknown action received for NPC: ${action}`);
+        // Resume the decision timer if action is unknown
+        this.npcDecisionInterval.paused = false;
       }
       // Reset current action (or it can be reset in movementStopped event)
       this.currentNpcAction = null;
