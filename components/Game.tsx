@@ -246,13 +246,16 @@ const Game = ({ userId }: { userId: string }) => {
 
   useEffect(() => {
     if (!isLoaded) return;
-    console.log(isSignedIn, "USER SIGNED IN");
 
-    console.log("NAME RECIEVED IN GAME: ", user?.username);
-    const socket = io(process.env.NEXT_PUBLIC_SERVER_URL!, {
-      query: { roomId: userId, playername: user?.username || "nice name" },
-      // path: "/clients/socketio/hubs/Hub",
+    const socket = io({
+      path: "/api/socket",
+      addTrailingSlash: false,
+      query: {
+        roomId: userId,
+        playername: user?.username || "nice name",
+      },
     });
+
     socketRef.current = socket;
 
     socket.on("chatMessage", (data: any) => {
@@ -666,9 +669,6 @@ const Game = ({ userId }: { userId: string }) => {
             <AlertDialogDescription>
               <input
                 type="text"
-                placeholder="Paste YouTube Playlist Link"
-                className="w-full p-2 border border-gray-300 rounded mb-4"
-                value={playlistLink}
                 onChange={(e) => setPlaylistLink(e.target.value)}
               />
               {currentSong && (
