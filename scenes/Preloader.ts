@@ -252,7 +252,7 @@ export default class Preloader extends Scene {
   private initializeNpcAgent(): void {
     this.npcDecisionInterval = this.time.addEvent({
       delay: 1000, // Decide every 1 second (adjustable)
-      // callback: this.decideNpcAction,
+      callback: this.decideNpcAction,
       callbackScope: this,
       loop: true,
     });
@@ -415,6 +415,10 @@ export default class Preloader extends Scene {
           this.dialogueBox.show(response);
           console.log("Groot's response:", response);
 
+          // // Update memory after interaction
+          // await Ai_response_log(`groot completed the interaction`, "groot");
+
+          // Resume the decision timer
           this.npcDecisionInterval.paused = false;
         });
       } else {
