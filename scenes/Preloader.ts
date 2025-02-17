@@ -415,9 +415,6 @@ export default class Preloader extends Scene {
           this.dialogueBox.show(response);
           console.log("Groot's response:", response);
 
-          // // Update memory after interaction
-          // await Ai_response_log(`groot completed the interaction`, "groot");
-
           // Resume the decision timer
           this.npcDecisionInterval.paused = false;
         });
