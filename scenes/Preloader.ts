@@ -251,7 +251,7 @@ export default class Preloader extends Scene {
   // Initialize the agentic system for the NPC
   private initializeNpcAgent(): void {
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 1000, // Decide every 1 second (adjustable)
+      delay: 10000, // Decide every 1 second (adjustable)
       callback: this.decideNpcAction,
       callbackScope: this,
       loop: true,
@@ -262,6 +262,9 @@ export default class Preloader extends Scene {
   private async decideNpcAction(): Promise<void> {
     const npcName = "npc_log";
     console.log(`Deciding action for ${npcName}`);
+    getNpcAction(npcName).then((action) => {
+      console.log(`NPC ${npcName} decided to ${action}`);
+    });
   }
 
   private handleVideoCall(): void {
