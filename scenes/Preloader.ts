@@ -242,7 +242,7 @@ export default class Preloader extends Scene {
   // Initialize the agentic system for the NPC
   private initializeNpcAgent(): void {
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 20000,
+      delay: 50000,
       callback: this.decideNpcAction,
       callbackScope: this,
       loop: true,
@@ -298,7 +298,7 @@ export default class Preloader extends Scene {
         break;
       default:
         console.log(`Unknown action: ${actionType}`);
-        this.gridEngine.moveRandomly("npc_log");
+        this.gridEngine.moveRandomly("npc_log", 1000);
     }
   }
 
