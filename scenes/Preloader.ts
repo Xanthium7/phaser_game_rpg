@@ -18,9 +18,9 @@ declare global {
 
 // Define a global dictionary of places
 const globalPlaces: { [key: string]: { x: number; y: number } } = {
-  CHILLMART: { x: 124, y: 50 },
+  CHILLMART: { x: 107, y: 32 },
   DROOPYVILLE: { x: 168, y: 32 },
-  LIBRARY: { x: 46, y: 58 },
+  LIBRARY: { x: 43, y: 91 },
   MART: { x: 118, y: 50 },
   PARK: { x: 118, y: 50 },
   // Add more places as needed
@@ -237,21 +237,12 @@ export default class Preloader extends Scene {
         this.npcDecisionInterval.paused = false;
       }
     });
-
-    // Remove manual movement logic
-    // this.time.addEvent({
-    //   delay: 3000,
-    //   callback: () => {
-    //     // ...existing random movement code...
-    //   },
-    //   loop: true,
-    // });
   }
 
   // Initialize the agentic system for the NPC
   private initializeNpcAgent(): void {
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 10000, // Decide every 1 second (adjustable)
+      delay: 20000,
       callback: this.decideNpcAction,
       callbackScope: this,
       loop: true,
@@ -262,9 +253,53 @@ export default class Preloader extends Scene {
   private async decideNpcAction(): Promise<void> {
     const npcName = "npc_log";
     console.log(`Deciding action for ${npcName}`);
-    getNpcAction(npcName).then((action) => {
-      console.log(`NPC ${npcName} decided to ${action}`);
-    });
+    const action = await getNpcAction(npcName);
+    console.log(`NPC ${npcName} decided to ${action}`);
+
+    const [actionType, reason] = action.split(" [");
+    const reasonText = reason.slice(0, -1); // Remove the trailing ']'
+
+    switch (actionType) {
+      case "IDLE":
+        console.log(`Groot stays idle: ${reasonText}`);
+        this.gridEngine.moveRandomly("npc_log");
+        break;
+      case "WANDER":
+        console.log(`Groot wanders around: ${reasonText}`);
+        this.gridEngine.moveRandomly("npc_log", 500);
+        break;
+      case "PLAYER":
+        console.log(`Groot moves to the player: ${reasonText}`);
+        const playerPosition = this.gridEngine.getPosition(this.socket.id);
+        console.log(
+          `Player position: x=${playerPosition.x}, y=${playerPosition.y}`
+        );
+        this.gridEngine.moveTo("npc_log", playerPosition);
+        break;
+      case "CHILLMART":
+        console.log(`Groot moves to Chilli Mart: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.CHILLMART);
+        break;
+      case "DROOPYVILLE":
+        console.log(`Groot moves to Droopyville: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.DROOPYVILLE);
+        break;
+      case "LIBRARY":
+        console.log(`Groot moves to Library: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.LIBRARY);
+        break;
+      case "MART":
+        console.log(`Groot moves to Mart: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.MART);
+        break;
+      case "PARK":
+        console.log(`Groot moves to Park: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.PARK);
+        break;
+      default:
+        console.log(`Unknown action: ${actionType}`);
+        this.gridEngine.moveRandomly("npc_log");
+    }
   }
 
   private handleVideoCall(): void {
@@ -332,9 +367,9 @@ export default class Preloader extends Scene {
         break;
     }
 
-    // this.dialogueBox.show(
-    //   `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
-    // );
+    this.dialogueBox.show(
+      `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
+    );
     if (
       (targetPosition.x === 82 && targetPosition.y === 89) ||
       (targetPosition.x === 81 && targetPosition.y === 89) ||
