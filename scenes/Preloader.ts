@@ -66,6 +66,10 @@ export default class Preloader extends Scene {
       frameWidth: 32,
       frameHeight: 32,
     });
+    this.load.spritesheet("npctest", "/assets/NPC_test.png", {
+      frameWidth: 16,
+      frameHeight: 32,
+    });
   }
   create() {
     const map = this.make.tilemap({ key: "map" });
@@ -140,6 +144,7 @@ export default class Preloader extends Scene {
     });
 
     this.addNPCLog();
+    this.addNPCTest(); // Add new NPC
 
     // Initialize AI-controlled NPC actions
     // this.initializeNpcAgent();
@@ -236,6 +241,86 @@ export default class Preloader extends Scene {
       }
     });
     this.gridEngine.moveRandomly("npc_log", 500);
+  }
+
+  private addNPCTest(): void {
+    const startGridPosition = { x: 160, y: 70 }; // Different starting position
+    const npcTest = this.add.sprite(0, 0, "npctest");
+
+    this.gridEngine.addCharacter({
+      id: "npctest",
+      sprite: npcTest,
+      startPosition: startGridPosition,
+      speed: 4,
+    });
+
+    // Create animations for npctest
+    this.anims.create({
+      key: "npctest_walk_down",
+      frames: this.anims.generateFrameNumbers("npctest", { start: 0, end: 3 }),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "npctest_walk_left",
+      frames: this.anims.generateFrameNumbers("npctest", {
+        start: 12,
+        end: 15,
+      }),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "npctest_walk_right",
+      frames: this.anims.generateFrameNumbers("npctest", {
+        start: 4,
+        end: 7,
+      }),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "npctest_walk_up",
+      frames: this.anims.generateFrameNumbers("npctest", {
+        start: 8,
+        end: 11,
+      }),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    // Listen to GridEngine movement events
+    this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
+      if (charId === "npctest") {
+        npcTest.play(`npctest_walk_${direction}`);
+      }
+    });
+
+    this.gridEngine.movementStopped().subscribe(({ charId, direction }) => {
+      if (charId === "npctest") {
+        npcTest.anims.stop();
+        switch (direction) {
+          case "up":
+            npcTest.setFrame(8);
+            break;
+          case "down":
+            npcTest.setFrame(0);
+            break;
+          case "left":
+            npcTest.setFrame(4);
+            break;
+          case "right":
+            npcTest.setFrame(12);
+            break;
+        }
+      }
+    });
+
+    // Make the NPC move randomly
+    this.gridEngine.moveRandomly("npctest", 1500);
   }
 
   // Initialize the agentic system for the NPC
@@ -456,6 +541,22 @@ export default class Preloader extends Scene {
         });
       } else {
         // Resume the decision timer if prompt is canceled
+      }
+    }
+
+    const npcTestPosition = this.gridEngine.getPosition("npctest");
+    const distanceToTest = Phaser.Math.Distance.Between(
+      targetPosition.x,
+      targetPosition.y,
+      npcTestPosition.x,
+      npcTestPosition.y
+    );
+
+    if (distanceToTest <= 1) {
+      console.log("Talking to Test NPC...");
+      const prompt = window.prompt("Talk to Test NPC: ");
+      if (prompt !== null) {
+        this.dialogueBox.show("Hello! I'm Test NPC!");
       }
     }
   }
