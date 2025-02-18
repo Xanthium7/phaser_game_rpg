@@ -142,7 +142,7 @@ export default class Preloader extends Scene {
     this.addNPCLog();
 
     // Initialize AI-controlled NPC actions
-    this.initializeNpcAgent();
+    // this.initializeNpcAgent();
 
     // Set up movement event listeners
     this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
@@ -239,67 +239,67 @@ export default class Preloader extends Scene {
   }
 
   // Initialize the agentic system for the NPC
-  private initializeNpcAgent(): void {
-    this.npcDecisionInterval = this.time.addEvent({
-      delay: 2000,
-      callback: this.decideNpcAction,
-      callbackScope: this,
-      loop: true,
-    });
-  }
+  // private initializeNpcAgent(): void {
+  //   this.npcDecisionInterval = this.time.addEvent({
+  //     delay: 2000,
+  //     callback: this.decideNpcAction,
+  //     callbackScope: this,
+  //     loop: true,
+  //   });
+  // }
 
   // Function to decide NPC's next action
-  private async decideNpcAction(): Promise<void> {
-    const npcName = "npc_log";
-    console.log(`Deciding action for ${npcName}`);
-    const action = await getNpcAction(npcName);
-    console.log(`NPC ${npcName} decided to ${action}`);
+  // private async decideNpcAction(): Promise<void> {
+  //   const npcName = "npc_log";
+  //   console.log(`Deciding action for ${npcName}`);
+  //   const action = await getNpcAction(npcName);
+  //   console.log(`NPC ${npcName} decided to ${action}`);
 
-    const [actionType, reason] = action.split(" [");
-    const reasonText = reason.slice(0, -1); // Remove the trailing ']'
+  //   const [actionType, reason] = action.split(" [");
+  //   const reasonText = reason.slice(0, -1); // Remove the trailing ']'
 
-    switch (actionType) {
-      case "IDLE":
-        console.log(`Groot stays idle: ${reasonText}`);
-        this.gridEngine.moveRandomly("npc_log");
-        break;
-      case "WANDER":
-        console.log(`Groot wanders around: ${reasonText}`);
-        this.gridEngine.moveRandomly("npc_log", 500);
-        break;
-      case "PLAYER":
-        console.log(`Groot moves to the player: ${reasonText}`);
-        const playerPosition = this.gridEngine.getPosition(this.socket.id);
-        console.log(
-          `Player position: x=${playerPosition.x}, y=${playerPosition.y}`
-        );
-        this.gridEngine.moveTo("npc_log", playerPosition);
-        break;
-      case "CHILLMART":
-        console.log(`Groot moves to Chilli Mart: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.CHILLMART);
-        break;
-      case "DROOPYVILLE":
-        console.log(`Groot moves to Droopyville: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.DROOPYVILLE);
-        break;
-      case "LIBRARY":
-        console.log(`Groot moves to Library: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.LIBRARY);
-        break;
-      case "MART":
-        console.log(`Groot moves to Mart: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.MART);
-        break;
-      case "PARK":
-        console.log(`Groot moves to Park: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.PARK);
-        break;
-      default:
-        console.log(`Unknown action: ${actionType}`);
-        this.gridEngine.moveRandomly("npc_log", 1000);
-    }
-  }
+  //   switch (actionType) {
+  //     case "IDLE":
+  //       console.log(`Groot stays idle: ${reasonText}`);
+  //       this.gridEngine.moveRandomly("npc_log");
+  //       break;
+  //     case "WANDER":
+  //       console.log(`Groot wanders around: ${reasonText}`);
+  //       this.gridEngine.moveRandomly("npc_log", 500);
+  //       break;
+  //     case "PLAYER":
+  //       console.log(`Groot moves to the player: ${reasonText}`);
+  //       const playerPosition = this.gridEngine.getPosition(this.socket.id);
+  //       console.log(
+  //         `Player position: x=${playerPosition.x}, y=${playerPosition.y}`
+  //       );
+  //       this.gridEngine.moveTo("npc_log", playerPosition);
+  //       break;
+  //     case "CHILLMART":
+  //       console.log(`Groot moves to Chilli Mart: ${reasonText}`);
+  //       this.gridEngine.moveTo("npc_log", globalPlaces.CHILLMART);
+  //       break;
+  //     case "DROOPYVILLE":
+  //       console.log(`Groot moves to Droopyville: ${reasonText}`);
+  //       this.gridEngine.moveTo("npc_log", globalPlaces.DROOPYVILLE);
+  //       break;
+  //     case "LIBRARY":
+  //       console.log(`Groot moves to Library: ${reasonText}`);
+  //       this.gridEngine.moveTo("npc_log", globalPlaces.LIBRARY);
+  //       break;
+  //     case "MART":
+  //       console.log(`Groot moves to Mart: ${reasonText}`);
+  //       this.gridEngine.moveTo("npc_log", globalPlaces.MART);
+  //       break;
+  //     case "PARK":
+  //       console.log(`Groot moves to Park: ${reasonText}`);
+  //       this.gridEngine.moveTo("npc_log", globalPlaces.PARK);
+  //       break;
+  //     default:
+  //       console.log(`Unknown action: ${actionType}`);
+  //       this.gridEngine.moveRandomly("npc_log", 1000);
+  //   }
+  // }
 
   private handleVideoCall(): void {
     const currentPlayerId = this.socket.id;
@@ -366,9 +366,9 @@ export default class Preloader extends Scene {
         break;
     }
 
-    this.dialogueBox.show(
-      `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
-    );
+    // this.dialogueBox.show(
+    //   `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
+    // );
     if (
       (targetPosition.x === 82 && targetPosition.y === 89) ||
       (targetPosition.x === 81 && targetPosition.y === 89) ||
@@ -441,7 +441,7 @@ export default class Preloader extends Scene {
 
     if (distance <= 1) {
       // Pause the NPC decision timer
-      this.npcDecisionInterval.paused = true;
+      // this.npcDecisionInterval.paused = true;
 
       console.log("Talking to Groot...");
 
@@ -453,11 +453,9 @@ export default class Preloader extends Scene {
           console.log("Groot's response:", response);
 
           // Resume the decision timer
-          this.npcDecisionInterval.paused = false;
         });
       } else {
         // Resume the decision timer if prompt is canceled
-        this.npcDecisionInterval.paused = false;
       }
     }
   }

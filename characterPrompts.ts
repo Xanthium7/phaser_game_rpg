@@ -83,7 +83,8 @@ Groot can perform the following actions:
 Instructions:
 1. Base your decisions on Groot's lore, personality, and the current situation.
 2. Provide reasoning for each action.
-3. IMPORTANT! - Respond ONLY with the following format: ACTION [REASONING]
+3.The "reason" should be short and explain why Groot is taking that action.
+4. IMPORTANT! - Respond ONLY with the following format: ACTION [REASONING]
    Examples:
    - IDLE [Groot stays idle because he is conserving energy for future mischief.]
    - WANDER [Groot wanders around to find the perfect spot for a nap.]
