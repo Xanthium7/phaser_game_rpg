@@ -117,13 +117,13 @@ export async function getNpcAction(username: string): Promise<string> {
           content:
             groot_brain_log_prompt +
             `
-    <MEMORY>
+    [MEMORY]
     ${groot_memory}
-    </MEMORY>
+    [/MEMORY]
         `,
         },
       ],
-      model: "llama3-70b-8192",
+      model: "llama-3.3-70b-versatile",
       temperature: 0.7,
     });
 

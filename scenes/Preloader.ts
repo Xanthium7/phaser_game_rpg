@@ -233,16 +233,15 @@ export default class Preloader extends Scene {
             npcLog.setFrame(8);
             break;
         }
-
-        this.npcDecisionInterval.paused = false;
       }
     });
+    this.gridEngine.moveRandomly("npc_log", 500);
   }
 
   // Initialize the agentic system for the NPC
   private initializeNpcAgent(): void {
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 50000,
+      delay: 2000,
       callback: this.decideNpcAction,
       callbackScope: this,
       loop: true,
