@@ -42,6 +42,17 @@ export default class Preloader extends Scene {
   private npcDecisionInterval!: Phaser.Time.TimerEvent;
   private currentNpcAction: string | null = null; // Track current NPC action
 
+  // Add new properties for better state management
+  private npcStates: {
+    [key: string]: {
+      isMoving: boolean;
+      currentAction: string | null;
+      lastActionTime: number;
+      isInteracting: boolean;
+      currentPlan: string | null;
+    };
+  } = {};
+
   constructor() {
     super("Preloader");
   }
@@ -327,148 +338,134 @@ export default class Preloader extends Scene {
 
   // Initialize the agentic system for the NPC
   private initializeNpcAgent(): void {
+    // Shorter interval for more responsive NPCs
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 10000,
-      callback: this.decideNpcAction,
+      delay: 5000, // Check every 5 seconds
+      callback: () => this.npcThink(),
       callbackScope: this,
       loop: true,
     });
+
+    // Initialize states for all NPCs
+    ["npc_log", "npctest"].forEach((npcId) => {
+      this.npcStates[npcId] = {
+        isMoving: false,
+        currentAction: null,
+        lastActionTime: 0,
+        isInteracting: false,
+        currentPlan: null,
+      };
+    });
   }
 
-  private getCurrentLocation(npcName: string): string {
-    const npcPosition = this.gridEngine.getPosition(npcName);
-    const npcX = npcPosition.x;
-    const npcY = npcPosition.y;
+  private async npcThink(): Promise<void> {
+    // Process each NPC's thinking
+    for (const npcId of Object.keys(this.npcStates)) {
+      const state = this.npcStates[npcId];
 
-    // Check each place in globalPlaces
-    for (const [placeName, coords] of Object.entries(globalPlaces)) {
-      const distance = Math.sqrt(
-        Math.pow(npcX - coords.x, 2) + Math.pow(npcY - coords.y, 2)
-      );
-
-      // If within 50 blocks, return the place name
-      if (distance <= 50) {
-        return placeName;
+      // Skip if NPC is busy
+      if (
+        state.isInteracting ||
+        Date.now() - state.lastActionTime < 3000 ||
+        state.isMoving
+      ) {
+        continue;
       }
-    }
 
-    // If no place is nearby, return "UNKNOWN"
-    return "UNKNOWN";
+      await this.processNpcDecision(npcId);
+    }
   }
 
-  // Function to decide NPC's next action
-  private async decideNpcAction(): Promise<void> {
-    const npcName = "npc_log";
-    console.log(`Deciding action for ${npcName}`);
-    const reflection = await reflectOnMemories(this.name, npcName);
-    const currentLocation = this.getCurrentLocation(npcName);
+  private async processNpcDecision(npcId: string): Promise<void> {
+    const currentPosition = this.gridEngine.getPosition(npcId);
+    const currentLocation = this.getCurrentLocation(npcId);
+
+    // Get reflection and plan
+    const reflection = await reflectOnMemories(this.name, npcId);
     const plan = await generatePlan(
       this.name,
-      npcName,
+      npcId,
       currentLocation,
       reflection
     );
-    const action = plan;
-    console.log(`NPC ${npcName} decided to ${action}`);
+
+    await this.executeNpcAction(npcId, plan);
+  }
+
+  private async executeNpcAction(npcId: string, action: string): Promise<void> {
+    const state = this.npcStates[npcId];
+    state.currentAction = action;
+    state.lastActionTime = Date.now();
+    state.isMoving = true;
 
     const [actionType, reason] = action.split(" [");
-    const reasonText = reason.slice(0, -1); // Remove the trailing ']'
-    switch (actionType) {
-      case "IDLE":
-        this.npcDecisionInterval.paused = true;
-        console.log(`Groot stays idle: ${reasonText}`);
-        this.gridEngine.stopMovement("npc_log");
-        update_Groot_memory(
-          `\n*Groot stayed ideal, reason: ${reasonText}\n`,
-          this.name
-        );
-        this.npcDecisionInterval.paused = false;
-        break;
-      case "WANDER":
-        this.npcDecisionInterval.paused = true;
-        console.log(`Groot wanders around: ${reasonText}`);
-        this.gridEngine.moveRandomly("npc_log", 500);
-        update_Groot_memory(
-          `\n*Groot wandered around, reason: ${reasonText}\n`,
-          this.name
-        );
-        this.gridEngine.movementStopped().subscribe(({ charId }) => {
-          if (charId === "npc_log") {
-            this.npcDecisionInterval.paused = false;
-          }
-        });
-        break;
-      case "PLAYER":
-        this.npcDecisionInterval.paused = true;
-        console.log(`Groot moves to the player: ${reasonText}`);
-        const playerPosition = this.gridEngine.getPosition(this.socket.id);
-        console.log(
-          `Player position: x=${playerPosition.x}, y=${playerPosition.y}`
-        );
-        this.gridEngine.moveTo("npc_log", playerPosition);
-        update_Groot_memory(
-          `\n*Groot moved to the player, reason: ${reasonText}\n`,
-          this.name
-        );
-        this.gridEngine.movementStopped().subscribe(({ charId }) => {
-          if (charId === "npc_log") {
-            this.npcDecisionInterval.paused = false;
-          }
-        });
-        break;
-      case "CHILLMART":
-        this.npcDecisionInterval.paused = true;
-        console.log(`Groot moves to Chilli Mart: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.CHILLMART);
-        update_Groot_memory(
-          `\n*Groot moved to Chilli Mart, reason: ${reasonText}\n`,
-          this.name
-        );
-        this.gridEngine.movementStopped().subscribe(({ charId }) => {
-          if (charId === "npc_log") {
-            this.npcDecisionInterval.paused = false;
-          }
-        });
-        break;
-      case "DROOPYVILLE":
-        this.npcDecisionInterval.paused = true;
-        console.log(`Groot moves to Droopyville: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.DROOPYVILLE);
-        update_Groot_memory(
-          `\n*Groot moved to Droopyville, reason: ${reasonText}\n`,
-          this.name
-        );
-        this.gridEngine.movementStopped().subscribe(({ charId }) => {
-          if (charId === "npc_log") {
-            this.npcDecisionInterval.paused = false;
-          }
-        });
-        break;
+    const reasonText = reason?.slice(0, -1) || "";
 
-      case "LIBRARY":
-        console.log(`Groot moves to Library: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.LIBRARY);
-        update_Groot_memory(
-          `\n*Groot moved to Library, reason: ${reasonText}\n`,
-          this.name
-        );
-        break;
-      case "MART":
-        console.log(`Groot moves to Mart: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.MART);
-        break;
-      case "PARK":
-        console.log(`Groot moves to Park: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.PARK);
-        update_Groot_memory(
-          `\n*Groot moved to Park, reason: ${reasonText}\n`,
-          this.name
-        );
-        break;
-      default:
-        console.log(`Unknown action: ${actionType}`);
-        this.gridEngine.moveRandomly("npc_log", 1000);
+    try {
+      switch (actionType.toUpperCase()) {
+        case "IDLE":
+          this.gridEngine.stopMovement(npcId);
+          await update_Groot_memory(
+            `\n*${npcId} stayed idle: ${reasonText}*\n`,
+            this.name
+          );
+          break;
+
+        case "WANDER":
+          this.gridEngine.moveRandomly(npcId, 500);
+          await update_Groot_memory(
+            `\n*${npcId} wandered around: ${reasonText}*\n`,
+            this.name
+          );
+          break;
+
+        case "PLAYER":
+          const playerPosition = this.gridEngine.getPosition(this.socket.id);
+          this.gridEngine.moveTo(npcId, playerPosition);
+          await update_Groot_memory(
+            `\n*${npcId} moved to player: ${reasonText}*\n`,
+            this.name
+          );
+          break;
+
+        default:
+          // Handle location-based movement
+          const targetLocation = globalPlaces[actionType];
+          if (targetLocation) {
+            this.gridEngine.moveTo(npcId, targetLocation);
+            await update_Groot_memory(
+              `\n*${npcId} moved to ${actionType}: ${reasonText}*\n`,
+              this.name
+            );
+          }
+      }
+    } catch (error) {
+      console.error(`Error executing action for ${npcId}:`, error);
+    } finally {
+      // Reset movement state when movement stops
+      this.gridEngine.movementStopped().subscribe(({ charId }) => {
+        if (charId === npcId) {
+          this.npcStates[npcId].isMoving = false;
+          this.npcStates[npcId].currentAction = null;
+        }
+      });
     }
+  }
+
+  private getCurrentLocation(npcId: string): string {
+    const position = this.gridEngine.getPosition(npcId);
+
+    // Check nearby places with a tolerance
+    for (const [name, coords] of Object.entries(globalPlaces)) {
+      if (
+        Math.abs(position.x - coords.x) <= 5 &&
+        Math.abs(position.y - coords.y) <= 5
+      ) {
+        return name;
+      }
+    }
+
+    return "UNKNOWN";
   }
 
   private handleVideoCall(): void {
@@ -610,24 +607,20 @@ export default class Preloader extends Scene {
     );
 
     if (distance <= 1) {
-      // Pause the NPC decision timer
-      this.npcDecisionInterval.paused = true;
+      const npcId = "npc_log";
+      this.npcStates[npcId].isInteracting = true;
 
       console.log("Talking to Groot...");
-
-      // Initiate dialogue prompt
       const prompt = window.prompt("Talk to Groot: ");
+
       if (prompt !== null) {
         Ai_response_log(prompt, this.name).then(async (response: any) => {
           this.dialogueBox.show(response);
           console.log("Groot's response:", response);
-
-          // Resume the decision timer
-          this.npcDecisionInterval.paused = false;
+          this.npcStates[npcId].isInteracting = false;
         });
       } else {
-        // Resume the decision timer if prompt is canceled
-        this.npcDecisionInterval.paused = false;
+        this.npcStates[npcId].isInteracting = false;
       }
     }
 
