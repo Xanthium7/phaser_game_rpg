@@ -191,3 +191,188 @@ export async function update_Groot_memory(key: string, username: string) {
     });
   }
 }
+
+export async function reflectOnMemories(
+  username: string,
+  npcId: string
+): Promise<string> {
+  const memory = await prisma.history.findMany({
+    where: {
+      username: username,
+    },
+    select: {
+      log_groot: true,
+    },
+    take: 1,
+  });
+
+  let npcMemories = "";
+  let personalityPrompt = "";
+
+  // Select memories and personality based on NPC
+  switch (npcId) {
+    case "npc_log":
+      npcMemories = memory[0]?.log_groot?.slice(0, 2000) || "";
+      personalityPrompt = groot_log_prompt;
+      break;
+    case "npctest":
+      npcMemories = memory[0]?.log_groot?.slice(0, 2000) || "";
+      personalityPrompt = `You are a test NPC with a curious and friendly personality.
+        You like to learn about the world around you and make new friends.
+        You should reflect on your experiences in a way that shows your personality.`;
+      break;
+    default:
+      return "No memories found for this NPC";
+  }
+
+  const reflectionPrompt = `
+    You are ${
+      npcId == "npc_log" ? "Groot" : npcId
+    } with the following personality:
+    ${personalityPrompt}
+
+    These are your recent memories and interactions:
+    ${npcMemories}
+
+    Based on these memories and your personality, reflect on:
+    1. How you feel about recent interactions
+    2. What you've learned about the people you've met
+    3. Your thoughts about the places you've visited
+    4. What you hope to do next
+
+    Respond in first person, staying true to your character's personality.
+  `;
+
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: reflectionPrompt,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
+    });
+
+    const reflection =
+      chatCompletion.choices[0]?.message?.content?.trim() || "";
+    console.log(
+      `${npcId == "npc_log" ? "Groot" : npcId}'s Reflection:`,
+      reflection
+    );
+
+    // Store the reflection in memory
+    const reflectionEntry = `\nSELF REFLECTION: *${
+      npcId == "npc_log" ? "Groot" : npcId
+    } reflects: ${reflection}*\n`;
+    await update_Groot_memory(reflectionEntry, username);
+
+    return reflection;
+  } catch (error) {
+    console.error("Reflection Error:", error);
+    return `${npcId} is lost in thought...`;
+  }
+}
+
+export async function generatePlan(
+  username: string,
+  npcId: string,
+  currentLocation: string,
+  reflection?: string
+): Promise<string> {
+  const memory = await prisma.history.findMany({
+    where: {
+      username: username,
+    },
+    select: {
+      log_groot: true,
+    },
+    take: 1,
+  });
+
+  let npcMemories = "";
+  let personalityPrompt = "";
+  let availableActions = "";
+
+  // Select memories, personality, and available actions based on NPC
+  switch (npcId) {
+    case "npc_log":
+      npcMemories = memory[0]?.log_groot?.slice(0, 2000) || "";
+      personalityPrompt = groot_log_prompt;
+      availableActions = `
+        Available actions:
+        - WANDER [reason]: Move randomly around the area
+        - IDLE [reason]: Stay in place
+        - PLAYER [reason]: Move towards the nearest player
+        - CHILLMART [reason]: Go to the Chill-Mart
+        - DROOPYVILLE [reason]: Visit Droopyville
+        - LIBRARY [reason]: Go to the Library
+        - PARK [reason]: Visit the Park
+      `;
+      break;
+    case "npctest":
+      npcMemories = memory[0]?.log_groot?.slice(0, 2000) || "";
+      personalityPrompt = `You are a test NPC with a curious and friendly personality.
+        You like to learn about the world around you and make new friends.`;
+      availableActions = `
+        Available actions:
+        - WANDER [reason]: Move randomly around the area
+        - IDLE [reason]: Stay in place
+        - FOLLOW [reason]: Follow nearby players
+      `;
+      break;
+    default:
+      return "No planning available for this NPC";
+  }
+
+  const planningPrompt = `
+    You are ${
+      npcId == "npc_log" ? "Groot" : npcId
+    } with the following personality:
+    ${personalityPrompt}
+
+    Current location: ${currentLocation}
+    
+    ${availableActions}
+
+    Recent memories and interactions:
+    ${npcMemories}
+
+    ${reflection ? `Recent reflection:\n${reflection}\n` : ""}
+
+    Based on your personality, current location, recent memories${
+      reflection ? " and reflection" : ""
+    }, 
+    what action should you take next?
+    Respond with a single action from the available actions list, followed by [reason] in brackets.
+    Example: "WANDER [I want to explore this new area I haven't seen before]"
+  `;
+
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: planningPrompt,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
+    });
+
+    const plan = chatCompletion.choices[0]?.message?.content?.trim() || "";
+    console.log(`${npcId}'s Plan:`, plan);
+
+    // Store the plan in memory
+    const planEntry = `\n*${
+      npcId == "npc_log" ? "Groot" : npcId
+    } plans to: ${plan}*\n`;
+    await update_Groot_memory(planEntry, username);
+
+    return plan;
+  } catch (error) {
+    console.error("Planning Error:", error);
+    return `${npcId} is unsure what to do next...`;
+  }
+}
