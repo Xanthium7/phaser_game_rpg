@@ -26,7 +26,7 @@ export async function Ai_response_log(
     },
     take: 1,
   });
-  const groot_memory = memory[0]?.log_groot?.slice(0, 2000);
+  const groot_memory = memory[0]?.log_groot?.slice(0, 6000);
   console.log(groot_memory);
 
   try {
@@ -106,7 +106,7 @@ export async function getNpcAction(username: string): Promise<string> {
     },
     take: 1,
   });
-  const groot_memory = memory[0]?.log_groot?.slice(0, 2000);
+  const groot_memory = memory[0]?.log_groot?.slice(0, 6000);
   // console.log(groot_memory);
 
   try {
@@ -212,11 +212,11 @@ export async function reflectOnMemories(
   // Select memories and personality based on NPC
   switch (npcId) {
     case "npc_log":
-      npcMemories = memory[0]?.log_groot?.slice(0, 2000) || "";
+      npcMemories = memory[0]?.log_groot?.slice(0, 6000) || "";
       personalityPrompt = groot_log_prompt;
       break;
     case "npctest":
-      npcMemories = memory[0]?.log_groot?.slice(0, 2000) || "";
+      npcMemories = memory[0]?.log_groot?.slice(0, 6000) || "";
       personalityPrompt = `You are a test NPC with a curious and friendly personality.
         You like to learn about the world around you and make new friends.
         You should reflect on your experiences in a way that shows your personality.`;
@@ -298,7 +298,7 @@ export async function generatePlan(
   // Select memories, personality, and available actions based on NPC
   switch (npcId) {
     case "npc_log":
-      npcMemories = memory[0]?.log_groot?.slice(0, 2000) || "";
+      npcMemories = memory[0]?.log_groot?.slice(0, 6000) || "";
       personalityPrompt = groot_log_prompt;
       availableActions = `
         Available actions:
@@ -312,7 +312,7 @@ export async function generatePlan(
       `;
       break;
     case "npctest":
-      npcMemories = memory[0]?.log_groot?.slice(0, 2000) || "";
+      npcMemories = memory[0]?.log_groot?.slice(0, 6000) || "";
       personalityPrompt = `You are a test NPC with a curious and friendly personality.
         You like to learn about the world around you and make new friends.`;
       availableActions = `

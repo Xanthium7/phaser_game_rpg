@@ -149,7 +149,7 @@ export default class Preloader extends Scene {
     this.addNPCTest(); // Add new NPC
 
     // Initialize AI-controlled NPC actions
-    // this.initializeNpcAgent();
+    this.initializeNpcAgent();
 
     // Set up movement event listeners
     this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
