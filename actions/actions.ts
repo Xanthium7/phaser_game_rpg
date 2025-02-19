@@ -345,7 +345,7 @@ export async function generatePlan(
       reflection ? " and reflection" : ""
     }, 
     what action should you take next?
-    Respond with a single action from the available actions list, followed by [reason] in brackets.
+    Respond with exactly a single action from the available actions list, followed by [reason] in brackets.
     Example: "WANDER [I want to explore this new area I haven't seen before]"
   `;
 

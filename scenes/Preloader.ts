@@ -4,7 +4,9 @@ import { Scene } from "phaser";
 import DialogueBox from "./DialogueBox";
 import {
   Ai_response_log,
+  generatePlan,
   getNpcAction,
+  reflectOnMemories,
   update_Groot_memory,
 } from "@/actions/actions";
 // import { Ai_response } from "@/actions/actions";
@@ -324,67 +326,150 @@ export default class Preloader extends Scene {
   }
 
   // Initialize the agentic system for the NPC
-  // private initializeNpcAgent(): void {
-  //   this.npcDecisionInterval = this.time.addEvent({
-  //     delay: 2000,
-  //     callback: this.decideNpcAction,
-  //     callbackScope: this,
-  //     loop: true,
-  //   });
-  // }
+  private initializeNpcAgent(): void {
+    this.npcDecisionInterval = this.time.addEvent({
+      delay: 10000,
+      callback: this.decideNpcAction,
+      callbackScope: this,
+      loop: true,
+    });
+  }
+
+  private getCurrentLocation(npcName: string): string {
+    const npcPosition = this.gridEngine.getPosition(npcName);
+    const npcX = npcPosition.x;
+    const npcY = npcPosition.y;
+
+    // Check each place in globalPlaces
+    for (const [placeName, coords] of Object.entries(globalPlaces)) {
+      const distance = Math.sqrt(
+        Math.pow(npcX - coords.x, 2) + Math.pow(npcY - coords.y, 2)
+      );
+
+      // If within 50 blocks, return the place name
+      if (distance <= 50) {
+        return placeName;
+      }
+    }
+
+    // If no place is nearby, return "UNKNOWN"
+    return "UNKNOWN";
+  }
 
   // Function to decide NPC's next action
-  // private async decideNpcAction(): Promise<void> {
-  //   const npcName = "npc_log";
-  //   console.log(`Deciding action for ${npcName}`);
-  //   const action = await getNpcAction(npcName);
-  //   console.log(`NPC ${npcName} decided to ${action}`);
+  private async decideNpcAction(): Promise<void> {
+    const npcName = "npc_log";
+    console.log(`Deciding action for ${npcName}`);
+    const reflection = await reflectOnMemories(this.name, npcName);
+    const currentLocation = this.getCurrentLocation(npcName);
+    const plan = await generatePlan(
+      this.name,
+      npcName,
+      currentLocation,
+      reflection
+    );
+    const action = plan;
+    console.log(`NPC ${npcName} decided to ${action}`);
 
-  //   const [actionType, reason] = action.split(" [");
-  //   const reasonText = reason.slice(0, -1); // Remove the trailing ']'
+    const [actionType, reason] = action.split(" [");
+    const reasonText = reason.slice(0, -1); // Remove the trailing ']'
+    switch (actionType) {
+      case "IDLE":
+        this.npcDecisionInterval.paused = true;
+        console.log(`Groot stays idle: ${reasonText}`);
+        this.gridEngine.stopMovement("npc_log");
+        update_Groot_memory(
+          `\n*Groot stayed ideal, reason: ${reasonText}\n`,
+          this.name
+        );
+        this.npcDecisionInterval.paused = false;
+        break;
+      case "WANDER":
+        this.npcDecisionInterval.paused = true;
+        console.log(`Groot wanders around: ${reasonText}`);
+        this.gridEngine.moveRandomly("npc_log", 500);
+        update_Groot_memory(
+          `\n*Groot wandered around, reason: ${reasonText}\n`,
+          this.name
+        );
+        this.gridEngine.movementStopped().subscribe(({ charId }) => {
+          if (charId === "npc_log") {
+            this.npcDecisionInterval.paused = false;
+          }
+        });
+        break;
+      case "PLAYER":
+        this.npcDecisionInterval.paused = true;
+        console.log(`Groot moves to the player: ${reasonText}`);
+        const playerPosition = this.gridEngine.getPosition(this.socket.id);
+        console.log(
+          `Player position: x=${playerPosition.x}, y=${playerPosition.y}`
+        );
+        this.gridEngine.moveTo("npc_log", playerPosition);
+        update_Groot_memory(
+          `\n*Groot moved to the player, reason: ${reasonText}\n`,
+          this.name
+        );
+        this.gridEngine.movementStopped().subscribe(({ charId }) => {
+          if (charId === "npc_log") {
+            this.npcDecisionInterval.paused = false;
+          }
+        });
+        break;
+      case "CHILLMART":
+        this.npcDecisionInterval.paused = true;
+        console.log(`Groot moves to Chilli Mart: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.CHILLMART);
+        update_Groot_memory(
+          `\n*Groot moved to Chilli Mart, reason: ${reasonText}\n`,
+          this.name
+        );
+        this.gridEngine.movementStopped().subscribe(({ charId }) => {
+          if (charId === "npc_log") {
+            this.npcDecisionInterval.paused = false;
+          }
+        });
+        break;
+      case "DROOPYVILLE":
+        this.npcDecisionInterval.paused = true;
+        console.log(`Groot moves to Droopyville: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.DROOPYVILLE);
+        update_Groot_memory(
+          `\n*Groot moved to Droopyville, reason: ${reasonText}\n`,
+          this.name
+        );
+        this.gridEngine.movementStopped().subscribe(({ charId }) => {
+          if (charId === "npc_log") {
+            this.npcDecisionInterval.paused = false;
+          }
+        });
+        break;
 
-  //   switch (actionType) {
-  //     case "IDLE":
-  //       console.log(`Groot stays idle: ${reasonText}`);
-  //       this.gridEngine.moveRandomly("npc_log");
-  //       break;
-  //     case "WANDER":
-  //       console.log(`Groot wanders around: ${reasonText}`);
-  //       this.gridEngine.moveRandomly("npc_log", 500);
-  //       break;
-  //     case "PLAYER":
-  //       console.log(`Groot moves to the player: ${reasonText}`);
-  //       const playerPosition = this.gridEngine.getPosition(this.socket.id);
-  //       console.log(
-  //         `Player position: x=${playerPosition.x}, y=${playerPosition.y}`
-  //       );
-  //       this.gridEngine.moveTo("npc_log", playerPosition);
-  //       break;
-  //     case "CHILLMART":
-  //       console.log(`Groot moves to Chilli Mart: ${reasonText}`);
-  //       this.gridEngine.moveTo("npc_log", globalPlaces.CHILLMART);
-  //       break;
-  //     case "DROOPYVILLE":
-  //       console.log(`Groot moves to Droopyville: ${reasonText}`);
-  //       this.gridEngine.moveTo("npc_log", globalPlaces.DROOPYVILLE);
-  //       break;
-  //     case "LIBRARY":
-  //       console.log(`Groot moves to Library: ${reasonText}`);
-  //       this.gridEngine.moveTo("npc_log", globalPlaces.LIBRARY);
-  //       break;
-  //     case "MART":
-  //       console.log(`Groot moves to Mart: ${reasonText}`);
-  //       this.gridEngine.moveTo("npc_log", globalPlaces.MART);
-  //       break;
-  //     case "PARK":
-  //       console.log(`Groot moves to Park: ${reasonText}`);
-  //       this.gridEngine.moveTo("npc_log", globalPlaces.PARK);
-  //       break;
-  //     default:
-  //       console.log(`Unknown action: ${actionType}`);
-  //       this.gridEngine.moveRandomly("npc_log", 1000);
-  //   }
-  // }
+      case "LIBRARY":
+        console.log(`Groot moves to Library: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.LIBRARY);
+        update_Groot_memory(
+          `\n*Groot moved to Library, reason: ${reasonText}\n`,
+          this.name
+        );
+        break;
+      case "MART":
+        console.log(`Groot moves to Mart: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.MART);
+        break;
+      case "PARK":
+        console.log(`Groot moves to Park: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.PARK);
+        update_Groot_memory(
+          `\n*Groot moved to Park, reason: ${reasonText}\n`,
+          this.name
+        );
+        break;
+      default:
+        console.log(`Unknown action: ${actionType}`);
+        this.gridEngine.moveRandomly("npc_log", 1000);
+    }
+  }
 
   private handleVideoCall(): void {
     const currentPlayerId = this.socket.id;
@@ -526,7 +611,7 @@ export default class Preloader extends Scene {
 
     if (distance <= 1) {
       // Pause the NPC decision timer
-      // this.npcDecisionInterval.paused = true;
+      this.npcDecisionInterval.paused = true;
 
       console.log("Talking to Groot...");
 
@@ -538,9 +623,11 @@ export default class Preloader extends Scene {
           console.log("Groot's response:", response);
 
           // Resume the decision timer
+          this.npcDecisionInterval.paused = false;
         });
       } else {
         // Resume the decision timer if prompt is canceled
+        this.npcDecisionInterval.paused = false;
       }
     }
 
