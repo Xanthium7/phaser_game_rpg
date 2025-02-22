@@ -5,10 +5,13 @@ import DialogueBox from "./DialogueBox";
 import {
   Ai_response_log,
   generatePlan,
+  get_npc_memeory,
   getNpcAction,
   reflectOnMemories,
   update_Groot_memory,
 } from "@/actions/actions";
+import { groot_log_prompt } from "@/characterPrompts";
+import { use } from "matter";
 // import { Ai_response } from "@/actions/actions";
 
 // to prevent chat controls from messing with game controls
@@ -53,12 +56,6 @@ export default class Preloader extends Scene {
     };
   } = {};
 
-  // Add reflection cooldown tracking
-  private lastReflectionTime: { [key: string]: number } = {};
-  private REFLECTION_COOLDOWN = 300000; // 5 minutes
-  private DECISION_INTERVAL = 8000; // 8 seconds between decisions
-  private pendingActions: { [key: string]: string } = {};
-
   // Add a new dictionary for NPC properties
   private npcProperties: {
     [key: string]: import("@/actions/actions").NPCProperties;
@@ -66,15 +63,26 @@ export default class Preloader extends Scene {
     npc_log: {
       name: "Groot",
       personality: "calm, curious, and a natural leader",
-      systemPrompt:
-        "You are a wise NPC who manages memories and guides players.",
+      systemPrompt: groot_log_prompt,
       memories: "",
+      location: "",
+      availableActions: [
+        "GO TO CHILLMART",
+        "GO TO LIBRARY",
+        "GO TO DROOPYVILLE",
+        "GO TO PARK",
+        "GO TO PLAYER",
+        "WANDER",
+        "IDLE",
+      ],
     },
     npctest: {
       name: "Test NPC",
       personality: "quirky and adventurous",
       systemPrompt: "You are a test character with a friendly attitude.",
       memories: "",
+      location: "",
+      availableActions: ["talk", "ask_question", "explore", "leave"],
     },
   };
 
@@ -362,26 +370,45 @@ export default class Preloader extends Scene {
   }
 
   // Initialize the agentic system for the NPC
-  private initializeNpcAgent(): void {
+  private initializeNpcAgent() {
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 2000,
+      delay: 10000,
       callback: this.decideNpcAction,
       callbackScope: this,
       loop: true,
     });
   }
 
+  private getNpcLocation(npcName: string): string {
+    const position = this.gridEngine.getPosition(npcName);
+
+    for (const [placeName, coords] of Object.entries(globalPlaces)) {
+      const distance =
+        Math.abs(position.x - coords.x) + Math.abs(position.y - coords.y);
+      if (distance <= 50) {
+        return placeName;
+      }
+    }
+
+    return "UNKNOWN"; // Return this if NPC is not at any known location
+  }
+
   // Function to decide NPC's next action
   private async decideNpcAction(): Promise<void> {
     const npcName = "npc_log";
     console.log(`Deciding action for ${npcName}`);
-    const action = await getNpcAction(npcName);
+
+    const location = this.getNpcLocation(npcName);
+    this.npcProperties[npcName].location = location;
+    const groot_memory = await get_npc_memeory("npc_log", this.name);
+    this.npcProperties["npc_log"].memories = groot_memory;
+
+    const action = await getNpcAction(this.npcProperties[npcName], this.name);
     console.log(`NPC ${npcName} decided to ${action}`);
 
     let [actionType, reason] = action.split(" [");
     const reasonText = reason ? reason.slice(0, -1) : "";
 
-    // Override if action is WANDER but player is nearby
     if (actionType === "WANDER") {
       const playerPosition = this.gridEngine.getPosition(this.socket.id);
       const npcPosition = this.gridEngine.getPosition(npcName);
@@ -397,39 +424,34 @@ export default class Preloader extends Scene {
         console.log("Overriding WANDER to PLAYER due to proximity");
       }
     }
-
     switch (actionType) {
       case "IDLE":
         console.log(`Groot stays idle: ${reasonText}`);
-        this.gridEngine.moveRandomly("npc_log");
+        this.gridEngine.stopMovement("npc_log");
         break;
       case "WANDER":
         console.log(`Groot wanders around: ${reasonText}`);
         this.gridEngine.moveRandomly("npc_log", 500);
         break;
-      case "PLAYER":
+      case "GO TO PLAYER":
         console.log(`Groot moves to the player: ${reasonText}`);
         const playerPos = this.gridEngine.getPosition(this.socket.id);
         console.log(`Player position: x=${playerPos.x}, y=${playerPos.y}`);
         this.gridEngine.moveTo("npc_log", playerPos);
         break;
-      case "CHILLMART":
+      case "GO TO CHILLMART":
         console.log(`Groot moves to Chilli Mart: ${reasonText}`);
         this.gridEngine.moveTo("npc_log", globalPlaces.CHILLMART);
         break;
-      case "DROOPYVILLE":
+      case "GO TO DROOPYVILLE":
         console.log(`Groot moves to Droopyville: ${reasonText}`);
         this.gridEngine.moveTo("npc_log", globalPlaces.DROOPYVILLE);
         break;
-      case "LIBRARY":
+      case "GO TO LIBRARY":
         console.log(`Groot moves to Library: ${reasonText}`);
         this.gridEngine.moveTo("npc_log", globalPlaces.LIBRARY);
         break;
-      case "MART":
-        console.log(`Groot moves to Mart: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.MART);
-        break;
-      case "PARK":
+      case "GO TO PARK":
         console.log(`Groot moves to Park: ${reasonText}`);
         this.gridEngine.moveTo("npc_log", globalPlaces.PARK);
         break;

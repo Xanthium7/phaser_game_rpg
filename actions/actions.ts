@@ -6,6 +6,23 @@ import Groq from "groq-sdk";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+export interface NPCProperties {
+  name: string;
+  personality: string;
+  systemPrompt: string;
+  memories?: string;
+  location?: string;
+  availableActions?: string[];
+}
+
+export interface GameState {
+  location: string;
+  time: string;
+  mood: string;
+  environment: { nearbyPlayers: number; nearbyNPCs: string[] };
+  availableActions: string[];
+}
+
 const globalPlacesDictionary: { [key: string]: { x: number; y: number } } = {
   "Chill-Mart": { x: 118, y: 50 },
   DroopyVille: { x: 162, y: 32 },
@@ -51,7 +68,10 @@ export async function Ai_response_log(
   return response;
 }
 
-export async function getNpcAction(username: string): Promise<string> {
+export async function get_npc_memeory(
+  npcId: string,
+  username: string
+): Promise<string> {
   const memory = await prisma.history.findMany({
     where: {
       username: username,
@@ -62,65 +82,74 @@ export async function getNpcAction(username: string): Promise<string> {
     take: 1,
   });
   const groot_memory = memory[0]?.log_groot?.slice(-1000);
-  // console.log(groot_memory);
+  return groot_memory;
+}
 
+export async function getNpcAction(
+  npc_properties: NPCProperties,
+  username: string
+): Promise<string> {
   try {
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
           role: "system",
-          content:
-            groot_brain_log_prompt +
-            `
-    [MEMORY]
-    ${groot_memory}
-    [/MEMORY]
-        `,
+          content: `
+      You are an NPC in a game world named ${npc_properties.name}. 
+      
+      STRICT RESPONSE FORMAT:
+      You must respond with exactly: ActionName [reasoning]
+      - ActionName should be a selected as exact action from the available actions.
+      - [reasoning] must be in square brackets
+  
+      
+      Example valid responses:
+      WANDER [looking for adventure]
+      CHILLMART [need to buy snacks]
+      IDLE [enjoying the view]
+      `,
+        },
+        {
+          role: "user",
+          content: `
+      Character Details:
+      - Personality: ${npc_properties.personality}
+      - Background: ${npc_properties.systemPrompt}
+      - Current Location: ${npc_properties.location}
+      - Recent Memories: ${npc_properties.memories}
+      
+      Available Actions: ${(npc_properties.availableActions ?? []).join(", ")}
+      
+      What single action will you take? Remember to use exact format: ActionName [reasoning]
+      `,
         },
       ],
       model: "llama-3.3-70b-versatile",
-      temperature: 0.7,
+      temperature: 0.3,
     });
 
     const response = chatCompletion.choices[0]?.message?.content?.trim() || "";
-    console.log("NPC Decision:", response);
 
-    const logEntry = [
-      "CHILLMART",
-      "DROOPYVILLE",
-      "LIBRARY",
-      "MART",
-      "PARK",
-      "PLAYER",
-    ].includes(response.toUpperCase())
-      ? `\n*Groot decided to go to ${response}*\n`
-      : `\n*Groot decides to do ${response}*\n`;
-
-    const existingHistory = await prisma.history.findFirst({
-      where: {
-        username: username,
-      },
-    });
-
-    if (existingHistory) {
-      const updatedLog = logEntry + existingHistory.log_groot;
-      await prisma.history.update({
-        where: { id: existingHistory.id },
-        data: { log_groot: updatedLog },
-      });
-    } else {
-      await prisma.history.create({
-        data: {
-          username: username,
-          log_groot: logEntry,
-        },
-      });
+    // Validate response format
+    if (!response.includes("[") || !response.includes("]")) {
+      return "IDLE [lazy to decide]";
     }
 
-    return response.toUpperCase();
+    const [action, ...rest] = response.split("[");
+    const reasoning = rest.join("[").replace("]", "").trim();
+
+    console.log("NPC Decision:", { action: action.trim(), reasoning });
+
+    update_Groot_memory(
+      `\n[*${
+        npc_properties.name
+      } chooses to ${action.trim()} because ${reasoning}*]\n`,
+      username
+    );
+    return response;
   } catch (error) {
     console.error("getNpcAction Error:", error);
-    return "No Action";
+    return "IDLE [error occurred]";
   }
 }
 
@@ -228,41 +257,6 @@ export async function reflectOnMemories(
     console.error("Reflection Error:", error);
     return `${npcId} is lost in thought...`;
   }
-}
-
-// Add new types and helper function for NPC context
-export interface NPCProperties {
-  name: string;
-  personality: string;
-  systemPrompt: string;
-  memories?: string;
-}
-
-export interface GameState {
-  location: string;
-  time: string;
-  mood: string;
-  environment: { nearbyPlayers: number; nearbyNPCs: string[] };
-  availableActions: string[];
-}
-
-export function buildNpcContext(
-  npcProps: NPCProperties,
-  gameState: GameState
-): string {
-  return `
-NPC Name: ${npcProps.name}
-Personality: ${npcProps.personality}
-System Prompt: ${npcProps.systemPrompt}
-Memories: ${npcProps.memories || "None"}
-
-Game State:
-- Location: ${gameState.location}
-- Time: ${gameState.time}
-- Mood: ${gameState.mood}
-- Environment: ${JSON.stringify(gameState.environment)}
-- Available Actions: ${gameState.availableActions.join(", ")}
-`;
 }
 
 // Modify generatePlan to include optional NPC context info
