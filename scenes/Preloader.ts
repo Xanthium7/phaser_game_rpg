@@ -205,8 +205,8 @@ export default class Preloader extends Scene {
       const sprite = this.players[charId];
       if (sprite) {
         sprite.anims.stop();
-        const characterGridWidth = this.characterGridWidths[charId];
-        sprite.setFrame(this.getStopFrame(direction, characterGridWidth));
+        // Play idle animation based on direction
+        sprite.play(`${charId}_idle_${direction}`);
       }
     });
 
@@ -370,7 +370,7 @@ export default class Preloader extends Scene {
   // Initialize the agentic system for the NPC
   private initializeNpcAgent() {
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 30000,
+      delay: 300000,
       callback: this.decideNpcAction,
       callbackScope: this,
       loop: true,
@@ -388,7 +388,7 @@ export default class Preloader extends Scene {
       }
     }
 
-    return "UNKNOWN"; // Return this if NPC is not at any known location
+    return "UNKNOWN";
   }
 
   // Function to decide NPC's next action
@@ -741,6 +741,9 @@ export default class Preloader extends Scene {
       54 + characterGridWidth
     );
 
+    // Add idle animations
+    this.createIdleAnimation(playerInfo.id, characterGridWidth);
+
     this.players[playerInfo.id] = sprite;
 
     const playerName = playerInfo.name || "Chigga";
@@ -769,6 +772,45 @@ export default class Preloader extends Scene {
       this.cameras.main.startFollow(sprite, true);
       this.cameras.main.setFollowOffset(-sprite.width, -sprite.height);
     }
+  }
+
+  private createIdleAnimation(playerId: string, characterGridWidth: number) {
+    // Create idle animations for each direction
+    this.anims.create({
+      key: `${playerId}_idle_down`,
+      frames: this.anims.generateFrameNumbers("hero", {
+        frames: [5 + characterGridWidth, 2 + characterGridWidth],
+      }),
+      frameRate: 2,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: `${playerId}_idle_right`,
+      frames: this.anims.generateFrameNumbers("hero", {
+        frames: [17 + characterGridWidth],
+      }),
+      frameRate: 2,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: `${playerId}_idle_up`,
+      frames: this.anims.generateFrameNumbers("hero", {
+        frames: [39 + characterGridWidth, 40 + characterGridWidth],
+      }),
+      frameRate: 2,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: `${playerId}_idle_left`,
+      frames: this.anims.generateFrameNumbers("hero", {
+        frames: [51 + characterGridWidth],
+      }),
+      frameRate: 2,
+      repeat: -1,
+    });
   }
 
   update() {
