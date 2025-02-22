@@ -30,7 +30,7 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
     this.add(this.background);
 
     this.text = scene.add.text(20, 20, "", {
-      font: "16px Arial",
+      font: " 16px Arial", // Changed to bold font
       fontStyle: "bold",
       fontFamily: "",
       color: "#000",

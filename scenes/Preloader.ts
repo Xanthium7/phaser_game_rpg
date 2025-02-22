@@ -779,7 +779,7 @@ export default class Preloader extends Scene {
     this.anims.create({
       key: `${playerId}_idle_down`,
       frames: this.anims.generateFrameNumbers("hero", {
-        frames: [5 + characterGridWidth, 2 + characterGridWidth],
+        frames: [2 + characterGridWidth, 2 + characterGridWidth],
       }),
       frameRate: 2,
       repeat: -1,
