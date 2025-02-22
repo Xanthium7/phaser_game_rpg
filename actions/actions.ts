@@ -30,42 +30,45 @@ const globalPlacesDictionary: { [key: string]: { x: number; y: number } } = {
   // Add more places as needed
 };
 
-async function getResponse(prompt: string, username: string): Promise<string> {
-  try {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.7,
-    });
-    return chatCompletion.choices[0]?.message?.content?.trim() || "No response";
-  } catch (error) {
-    console.error("Error getting response:", error);
-    return "Sorry, I couldn't process that.";
-  }
-}
-
-export async function Ai_response_log(
+export async function Ai_response(
+  npcId: string,
   prompt: string,
   username: string
 ): Promise<string> {
-  // First analyze the conversation
-  const analysis = await analyzeConversation(prompt);
+  const memory = get_npc_memeory(npcId, username);
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `
+        ${groot_log_prompt}
 
-  // Get the response as before
-  const response = await getResponse(prompt, username);
+        You have a memory of the following conversation and events:
+        ${memory}
 
-  // Update memory with both the conversation and any action taken
-  const memoryUpdate = `
-    ${username}: ${prompt}
-    Response: ${response}
-    Action: ${analysis.intent}${
-    analysis.location ? ` to ${analysis.location}` : ""
+        
+      `,
+        },
+        {
+          role: "user",
+          content: `
+          ${username} : ${prompt}\n
+      `,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.3,
+    });
+
+    const response = chatCompletion.choices[0]?.message?.content?.trim() || "";
+    const memoryEntry = `\n${username}: ${prompt}\nGroot: ${response}\n`;
+    await update_Groot_memory(memoryEntry, username);
+    return response;
+  } catch (error) {
+    console.error("getNpcAction Error:", error);
+    return " [error occurred]";
   }
-  `;
-
-  await update_Groot_memory(memoryUpdate, username);
-
-  return response;
 }
 
 export async function get_npc_memeory(
@@ -81,7 +84,7 @@ export async function get_npc_memeory(
     },
     take: 1,
   });
-  const groot_memory = memory[0]?.log_groot?.slice(-1000);
+  const groot_memory = memory[0]?.log_groot?.slice(-2000);
   return groot_memory;
 }
 
@@ -153,7 +156,10 @@ export async function getNpcAction(
   }
 }
 
-export async function update_Groot_memory(key: string, username: string) {
+export async function update_Groot_memory(
+  new_memory: string,
+  username: string
+) {
   const existingHistory = await prisma.history.findFirst({
     where: {
       username: username,
@@ -161,7 +167,7 @@ export async function update_Groot_memory(key: string, username: string) {
   });
 
   if (existingHistory) {
-    const updatedLog = key + existingHistory.log_groot;
+    const updatedLog = existingHistory.log_groot + new_memory;
     await prisma.history.update({
       where: { id: existingHistory.id },
       data: { log_groot: updatedLog },
@@ -170,7 +176,7 @@ export async function update_Groot_memory(key: string, username: string) {
     await prisma.history.create({
       data: {
         username: username,
-        log_groot: key,
+        log_groot: new_memory,
       },
     });
   }

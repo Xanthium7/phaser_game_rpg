@@ -3,11 +3,9 @@ import * as Phaser from "phaser";
 import { Scene } from "phaser";
 import DialogueBox from "./DialogueBox";
 import {
-  Ai_response_log,
-  generatePlan,
+  Ai_response,
   get_npc_memeory,
   getNpcAction,
-  reflectOnMemories,
   update_Groot_memory,
 } from "@/actions/actions";
 import { groot_log_prompt } from "@/characterPrompts";
@@ -372,7 +370,7 @@ export default class Preloader extends Scene {
   // Initialize the agentic system for the NPC
   private initializeNpcAgent() {
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 10000,
+      delay: 30000,
       callback: this.decideNpcAction,
       callbackScope: this,
       loop: true,
@@ -605,7 +603,12 @@ export default class Preloader extends Scene {
 
       console.log("Talking to Groot...");
       const userInput = window.prompt("Talk to Groot: ");
-      // You can use 'userInput' if needed
+      if (userInput) {
+        Ai_response("npc_log", userInput, this.name).then((response) => {
+          console.log("Groot Response:", response);
+          this.dialogueBox.show(response);
+        });
+      }
 
       // Resume the decision timer
       this.npcDecisionInterval.paused = false;
@@ -767,7 +770,6 @@ export default class Preloader extends Scene {
       this.cameras.main.setFollowOffset(-sprite.width, -sprite.height);
     }
   }
-  //   const COLORS = ["BLUE", "WHITE", "BLACK", "BASIC", "PINK", "BROWN", "VIOLET", "YELLOW", "GREEN", "CYAN"];
 
   update() {
     const playerId = this.socket.id;
