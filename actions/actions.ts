@@ -246,17 +246,10 @@ export interface GameState {
   availableActions: string[];
 }
 
-// Change buildNpcContext to async to satisfy server actions requirements
-export async function buildNpcContext(
+export function buildNpcContext(
   npcProps: NPCProperties,
   gameState: GameState
-): Promise<string> {
-  console.log(
-    "buildNpcContext called with npcProps:",
-    npcProps,
-    "and gameState:",
-    gameState
-  );
+): string {
   return `
 NPC Name: ${npcProps.name}
 Personality: ${npcProps.personality}

@@ -378,8 +378,25 @@ export default class Preloader extends Scene {
     const action = await getNpcAction(npcName);
     console.log(`NPC ${npcName} decided to ${action}`);
 
-    const [actionType, reason] = action.split(" [");
-    const reasonText = reason.slice(0, -1); // Remove the trailing ']'
+    let [actionType, reason] = action.split(" [");
+    const reasonText = reason ? reason.slice(0, -1) : "";
+
+    // Override if action is WANDER but player is nearby
+    if (actionType === "WANDER") {
+      const playerPosition = this.gridEngine.getPosition(this.socket.id);
+      const npcPosition = this.gridEngine.getPosition(npcName);
+      const distance = Phaser.Math.Distance.Between(
+        playerPosition.x,
+        playerPosition.y,
+        npcPosition.x,
+        npcPosition.y
+      );
+      console.log(`Distance from player: ${distance}`);
+      if (distance < 5) {
+        actionType = "PLAYER";
+        console.log("Overriding WANDER to PLAYER due to proximity");
+      }
+    }
 
     switch (actionType) {
       case "IDLE":
@@ -392,11 +409,9 @@ export default class Preloader extends Scene {
         break;
       case "PLAYER":
         console.log(`Groot moves to the player: ${reasonText}`);
-        const playerPosition = this.gridEngine.getPosition(this.socket.id);
-        console.log(
-          `Player position: x=${playerPosition.x}, y=${playerPosition.y}`
-        );
-        this.gridEngine.moveTo("npc_log", playerPosition);
+        const playerPos = this.gridEngine.getPosition(this.socket.id);
+        console.log(`Player position: x=${playerPos.x}, y=${playerPos.y}`);
+        this.gridEngine.moveTo("npc_log", playerPos);
         break;
       case "CHILLMART":
         console.log(`Groot moves to Chilli Mart: ${reasonText}`);
@@ -489,9 +504,9 @@ export default class Preloader extends Scene {
         break;
     }
 
-    this.dialogueBox.show(
-      `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
-    );
+    // this.dialogueBox.show(
+    //   `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
+    // );
     if (
       (targetPosition.x === 82 && targetPosition.y === 89) ||
       (targetPosition.x === 81 && targetPosition.y === 89) ||
