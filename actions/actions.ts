@@ -13,87 +13,42 @@ const globalPlacesDictionary: { [key: string]: { x: number; y: number } } = {
   // Add more places as needed
 };
 
+async function getResponse(prompt: string, username: string): Promise<string> {
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
+    });
+    return chatCompletion.choices[0]?.message?.content?.trim() || "No response";
+  } catch (error) {
+    console.error("Error getting response:", error);
+    return "Sorry, I couldn't process that.";
+  }
+}
+
 export async function Ai_response_log(
   prompt: string,
   username: string
 ): Promise<string> {
-  const memory = await prisma.history.findMany({
-    where: {
-      username: username,
-    },
-    select: {
-      log_groot: true,
-    },
-    take: 1,
-  });
-  const groot_memory = memory[0]?.log_groot?.slice(-1000);
-  console.log(groot_memory);
+  // First analyze the conversation
+  const analysis = await analyzeConversation(prompt);
 
-  try {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content:
-            groot_log_prompt +
-            `
-      Your responses will have a context memory based on previous interactions with the user. 
-      The memory will be in the form:
-      <username>: user's query
-      <response>: Groot's response.
+  // Get the response as before
+  const response = await getResponse(prompt, username);
 
-      Based on the context, you are to write a response to the user's query.
-
-      MEMORY CONTEXT:
-      ${groot_memory}
-
-      `,
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      model: "llama-3.1-8b-instant",
-      temperature: 0.7,
-    });
-
-    const response = chatCompletion.choices[0]?.message?.content || "";
-    console.log(response);
-
-    const logEntry = `
+  // Update memory with both the conversation and any action taken
+  const memoryUpdate = `
     ${username}: ${prompt}
-    response: ${response}
-    `;
-
-    const existingHistory = await prisma.history.findFirst({
-      where: {
-        username: username,
-      },
-    });
-
-    // console.log(existingHistory?.log_groot);
-
-    if (existingHistory) {
-      const updatedLog = logEntry + existingHistory.log_groot;
-      await prisma.history.update({
-        where: { id: existingHistory.id },
-        data: { log_groot: updatedLog },
-      });
-    } else {
-      await prisma.history.create({
-        data: {
-          username: username,
-          log_groot: logEntry,
-        },
-      });
-    }
-
-    return response;
-  } catch (error) {
-    console.error("Ai_response Error:", error);
-    return "I'm having trouble understanding right now.";
+    Response: ${response}
+    Action: ${analysis.intent}${
+    analysis.location ? ` to ${analysis.location}` : ""
   }
+  `;
+
+  await update_Groot_memory(memoryUpdate, username);
+
+  return response;
 }
 
 export async function getNpcAction(username: string): Promise<string> {
@@ -275,109 +230,143 @@ export async function reflectOnMemories(
   }
 }
 
+// Add new types and helper function for NPC context
+export interface NPCProperties {
+  name: string;
+  personality: string;
+  systemPrompt: string;
+  memories?: string;
+}
+
+export interface GameState {
+  location: string;
+  time: string;
+  mood: string;
+  environment: { nearbyPlayers: number; nearbyNPCs: string[] };
+  availableActions: string[];
+}
+
+// Change buildNpcContext to async to satisfy server actions requirements
+export async function buildNpcContext(
+  npcProps: NPCProperties,
+  gameState: GameState
+): Promise<string> {
+  console.log(
+    "buildNpcContext called with npcProps:",
+    npcProps,
+    "and gameState:",
+    gameState
+  );
+  return `
+NPC Name: ${npcProps.name}
+Personality: ${npcProps.personality}
+System Prompt: ${npcProps.systemPrompt}
+Memories: ${npcProps.memories || "None"}
+
+Game State:
+- Location: ${gameState.location}
+- Time: ${gameState.time}
+- Mood: ${gameState.mood}
+- Environment: ${JSON.stringify(gameState.environment)}
+- Available Actions: ${gameState.availableActions.join(", ")}
+`;
+}
+
+// Modify generatePlan to include optional NPC context info
 export async function generatePlan(
   username: string,
   npcId: string,
   currentLocation: string,
-  reflection?: string
+  reflection?: string,
+  npcContext?: string
 ): Promise<string> {
   const memory = await prisma.history.findMany({
-    where: {
-      username: username,
-    },
-    select: {
-      log_groot: true,
-    },
+    where: { username: username },
+    select: { log_groot: true },
     take: 1,
   });
 
-  let npcMemories = "";
-  let personalityPrompt = "";
-  let availableActions = "";
+  // Only use the last 5 interactions for immediate context
+  const recentMemories = memory[0]?.log_groot
+    ?.split("\n")
+    .filter((line) => line.trim().length > 0)
+    .slice(0, 5)
+    .join("\n");
 
-  // Select memories, personality, and available actions based on NPC
-  switch (npcId) {
-    case "npc_log":
-      npcMemories = memory[0]?.log_groot?.slice(-1000) || "";
-      personalityPrompt = groot_log_prompt;
-      availableActions = `
-        Available actions:
-        - WANDER [reason]: Move randomly around the area
-        - IDLE [reason]: Stay in place
-        - PLAYER [reason]: Move towards the nearest player
-        - CHILLMART [reason]: Go to the Chill-Mart
-        - DROOPYVILLE [reason]: Visit Droopyville
-        - LIBRARY [reason]: Go to the Library
-        - PARK [reason]: Visit the Park
-      `;
-      break;
-    case "npctest":
-      npcMemories = memory[0]?.log_groot?.slice(-1000) || "";
-      personalityPrompt = `You are a test NPC with a curious and friendly personality.
-        You like to learn about the world around you and make new friends.`;
-      availableActions = `
-        Available actions:
-        - WANDER [reason]: Move randomly around the area
-        - IDLE [reason]: Stay in place
-        - FOLLOW [reason]: Follow nearby players
-      `;
-      break;
-    default:
-      return "No planning available for this NPC";
-  }
+  let planningPrompt = `
+You are ${npcId === "npc_log" ? "Groot" : npcId}.
+Current location: ${currentLocation}
+${npcContext ? npcContext : ""}
 
-  const planningPrompt = `
-    You are ${
-      npcId === "npc_log" ? "Groot" : npcId
-    } with the following personality:
-    ${personalityPrompt}
+Your recent interactions and thoughts:
+${recentMemories}
 
-    Current location: ${currentLocation}
-    
-    ${availableActions}
+Available actions (CHOOSE ONE):
+1. LIBRARY [reason] - If mentioned books, knowledge, or learning
+2. CHILLMART [reason] - If mentioned shopping or supplies
+3. DROOPYVILLE [reason] - If mentioned visiting this location
+4. PARK [reason] - If mentioned relaxing or nature
+5. PLAYER [reason] - If in conversation or helping someone
+6. WANDER [reason] - Only if no specific destination was mentioned
+7. IDLE [reason] - Only if specifically wanting to stay put
 
-    Recent memories and interactions:
-    ${npcMemories}
+IMPORTANT:
+- Your action must directly relate to your most recent interaction or thought
+- If someone mentions a location, you should plan to go there
+- If in conversation, stay with PLAYER
+- Only WANDER if truly no destination or purpose was mentioned
 
-    ${reflection ? `Recent reflection:\n${reflection}\n` : ""}
-
-    Based on your personality, current location, and most recent memories, 
-    what single action should you take next?
-    
-    IMPORTANT:
-    1. Choose exactly ONE action from the available actions list
-    2. Format: "ACTION [brief reason]"
-    3. Keep the reason concise
-    4. Consider your current location when choosing actions
-    5. Don't repeat your last action unless necessary
-    
-    Example: "WANDER [Want to explore this area]"
+Based on your most recent interaction, what single action will you take?
+Respond with exactly "ACTION [brief reason]"
   `;
 
   try {
     const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: planningPrompt,
-        },
-      ],
+      messages: [{ role: "system", content: planningPrompt }],
       model: "llama-3.3-70b-versatile",
-      temperature: 0.7,
+      temperature: 0.3, // Lower temperature for more consistent decisions
     });
 
     const plan = chatCompletion.choices[0]?.message?.content?.trim() || "";
-    console.log(`${npcId}'s Plan:`, plan);
 
-    // Store the plan in memory
-    const planEntry = `\n*${
-      npcId == "npc_log" ? "Groot" : npcId
-    } plans to: ${plan}*\n`;
-    await update_Groot_memory(planEntry, username);
+    // Validate the plan format
+    if (!plan.includes("[") || !plan.includes("]")) {
+      return "IDLE [Invalid plan format, staying put]";
+    }
 
     return plan;
   } catch (error) {
     console.error("Planning Error:", error);
-    return `${npcId} is unsure what to do next...`;
+    return "IDLE [Error in planning]";
+  }
+}
+
+// Add a new function to analyze conversation context
+export async function analyzeConversation(text: string): Promise<{
+  intent: string;
+  location?: string;
+  action?: string;
+}> {
+  const analysisPrompt = `
+    Analyze this conversation: "${text}"
+    
+    Extract:
+    1. Main intent (CHAT, TRAVEL, HELP, STAY)
+    2. Mentioned location (if any)
+    3. Requested action (if any)
+    
+    Format response as JSON with intent, location, action
+  `;
+
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: "system", content: analysisPrompt }],
+      model: "llama-3.1-8b-instant",
+      temperature: 0.1,
+    });
+
+    return JSON.parse(chatCompletion.choices[0]?.message?.content || "{}");
+  } catch {
+    return { intent: "CHAT" };
   }
 }

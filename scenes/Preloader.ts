@@ -53,6 +53,31 @@ export default class Preloader extends Scene {
     };
   } = {};
 
+  // Add reflection cooldown tracking
+  private lastReflectionTime: { [key: string]: number } = {};
+  private REFLECTION_COOLDOWN = 300000; // 5 minutes
+  private DECISION_INTERVAL = 8000; // 8 seconds between decisions
+  private pendingActions: { [key: string]: string } = {};
+
+  // Add a new dictionary for NPC properties
+  private npcProperties: {
+    [key: string]: import("@/actions/actions").NPCProperties;
+  } = {
+    npc_log: {
+      name: "Groot",
+      personality: "calm, curious, and a natural leader",
+      systemPrompt:
+        "You are a wise NPC who manages memories and guides players.",
+      memories: "",
+    },
+    npctest: {
+      name: "Test NPC",
+      personality: "quirky and adventurous",
+      systemPrompt: "You are a test character with a friendly attitude.",
+      memories: "",
+    },
+  };
+
   constructor() {
     super("Preloader");
   }
@@ -338,15 +363,14 @@ export default class Preloader extends Scene {
 
   // Initialize the agentic system for the NPC
   private initializeNpcAgent(): void {
-    // Shorter interval for more responsive NPCs
+    console.log("Initializing NPC Agent...");
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 5000, // Check every 5 seconds
-      callback: () => this.npcThink(),
+      delay: 3000, // lowered delay for debugging (originally this.DECISION_INTERVAL)
+      callback: this.npcThink,
       callbackScope: this,
       loop: true,
     });
 
-    // Initialize states for all NPCs
     ["npc_log", "npctest"].forEach((npcId) => {
       this.npcStates[npcId] = {
         isMoving: false,
@@ -355,44 +379,89 @@ export default class Preloader extends Scene {
         isInteracting: false,
         currentPlan: null,
       };
+      this.lastReflectionTime[npcId] = Date.now();
     });
+    console.log("NPC states initialized:", this.npcStates);
   }
 
   private async npcThink(): Promise<void> {
-    // Process each NPC's thinking
+    console.log("npcThink triggered at", new Date().toLocaleTimeString());
     for (const npcId of Object.keys(this.npcStates)) {
       const state = this.npcStates[npcId];
+      console.log(`Processing NPC ${npcId} with state:`, state);
 
       // Skip if NPC is busy
-      if (
-        state.isInteracting ||
-        Date.now() - state.lastActionTime < 3000 ||
-        state.isMoving
-      ) {
+      if (state.isInteracting || state.isMoving) {
+        console.log(
+          `Skipping NPC ${npcId} because it is busy (isInteracting: ${state.isInteracting}, isMoving: ${state.isMoving})`
+        );
         continue;
       }
 
-      await this.processNpcDecision(npcId);
+      const currentTime = Date.now();
+      const shouldReflect =
+        currentTime - (this.lastReflectionTime[npcId] || 0) >
+        this.REFLECTION_COOLDOWN;
+      const currentLocation = this.getCurrentLocation(npcId);
+
+      // Build game state info and log it
+      const gameState = {
+        location: currentLocation,
+        time: new Date().toLocaleTimeString(),
+        mood: "neutral",
+        environment: {
+          nearbyPlayers: Object.keys(this.players).length,
+          nearbyNPCs: Object.keys(this.npcProperties).filter(
+            (id) => id !== npcId
+          ),
+        },
+        availableActions: [
+          "LIBRARY",
+          "CHILLMART",
+          "DROOPYVILLE",
+          "PARK",
+          "PLAYER",
+          "WANDER",
+          "IDLE",
+        ],
+      };
+      console.log(`NPC ${npcId} gameState:`, gameState);
+
+      // Retrieve NPC properties and build context
+      const npcProps = this.npcProperties[npcId];
+      const { buildNpcContext } = await import("@/actions/actions");
+      const npcContext = await buildNpcContext(npcProps, gameState);
+      console.log(`NPC ${npcId} context:`, npcContext);
+
+      let plan;
+      if (shouldReflect) {
+        const reflection = await reflectOnMemories(this.name, npcId);
+        console.log(`NPC ${npcId} reflection:`, reflection);
+        plan = await generatePlan(
+          this.name,
+          npcId,
+          currentLocation,
+          reflection,
+          npcContext
+        );
+        this.lastReflectionTime[npcId] = currentTime;
+      } else {
+        plan = await generatePlan(
+          this.name,
+          npcId,
+          currentLocation,
+          undefined,
+          npcContext
+        );
+      }
+      console.log(`NPC ${npcId} plan:`, plan);
+      await this.executeNpcAction(npcId, plan);
     }
   }
 
-  private async processNpcDecision(npcId: string): Promise<void> {
-    const currentPosition = this.gridEngine.getPosition(npcId);
-    const currentLocation = this.getCurrentLocation(npcId);
-
-    // Get reflection and plan
-    const reflection = await reflectOnMemories(this.name, npcId);
-    const plan = await generatePlan(
-      this.name,
-      npcId,
-      currentLocation,
-      reflection
-    );
-
-    await this.executeNpcAction(npcId, plan);
-  }
-
   private async executeNpcAction(npcId: string, action: string): Promise<void> {
+    if (!action) return;
+
     const state = this.npcStates[npcId];
     state.currentAction = action;
     state.lastActionTime = Date.now();
@@ -405,51 +474,64 @@ export default class Preloader extends Scene {
       switch (actionType.toUpperCase()) {
         case "IDLE":
           this.gridEngine.stopMovement(npcId);
-          await update_Groot_memory(
-            `\n*${npcId} stayed idle: ${reasonText}*\n`,
-            this.name
-          );
           break;
 
         case "WANDER":
-          this.gridEngine.moveRandomly(npcId, 500);
-          await update_Groot_memory(
-            `\n*${npcId} wandered around: ${reasonText}*\n`,
-            this.name
-          );
+          this.gridEngine.moveRandomly(npcId, 2000);
           break;
 
         case "PLAYER":
           const playerPosition = this.gridEngine.getPosition(this.socket.id);
-          this.gridEngine.moveTo(npcId, playerPosition);
-          await update_Groot_memory(
-            `\n*${npcId} moved to player: ${reasonText}*\n`,
-            this.name
-          );
+          await this.moveNpcToPosition(npcId, playerPosition);
+          break;
+
+        case "FOLLOW":
+          if (this.pendingActions[npcId] === "FOLLOW") {
+            const playerPos = this.gridEngine.getPosition(this.socket.id);
+            await this.moveNpcToPosition(npcId, playerPos);
+          }
           break;
 
         default:
-          // Handle location-based movement
-          const targetLocation = globalPlaces[actionType];
+          const targetLocation = globalPlaces[actionType.toUpperCase()];
           if (targetLocation) {
-            this.gridEngine.moveTo(npcId, targetLocation);
-            await update_Groot_memory(
-              `\n*${npcId} moved to ${actionType}: ${reasonText}*\n`,
-              this.name
-            );
+            await this.moveNpcToPosition(npcId, targetLocation);
           }
       }
+
+      await update_Groot_memory(
+        `\n*${npcId} ${actionType.toLowerCase()}: ${reasonText}*\n`,
+        this.name
+      );
     } catch (error) {
       console.error(`Error executing action for ${npcId}:`, error);
-    } finally {
-      // Reset movement state when movement stops
-      this.gridEngine.movementStopped().subscribe(({ charId }) => {
-        if (charId === npcId) {
-          this.npcStates[npcId].isMoving = false;
-          this.npcStates[npcId].currentAction = null;
-        }
-      });
     }
+
+    // Reset movement state when movement stops
+    this.gridEngine.movementStopped().subscribe(({ charId }) => {
+      if (charId === npcId) {
+        this.npcStates[npcId].isMoving = false;
+        this.npcStates[npcId].currentAction = null;
+      }
+    });
+  }
+
+  private async moveNpcToPosition(
+    npcId: string,
+    position: { x: number; y: number }
+  ): Promise<void> {
+    return new Promise((resolve) => {
+      this.gridEngine.moveTo(npcId, position);
+
+      const subscription = this.gridEngine
+        .movementStopped()
+        .subscribe(({ charId }) => {
+          if (charId === npcId) {
+            subscription.unsubscribe();
+            resolve();
+          }
+        });
+    });
   }
 
   private getCurrentLocation(npcId: string): string {
@@ -614,11 +696,30 @@ export default class Preloader extends Scene {
       const prompt = window.prompt("Talk to Groot: ");
 
       if (prompt !== null) {
-        Ai_response_log(prompt, this.name).then(async (response: any) => {
-          this.dialogueBox.show(response);
-          console.log("Groot's response:", response);
-          this.npcStates[npcId].isInteracting = false;
-        });
+        // Check for movement commands
+        if (prompt.toLowerCase().includes("take me to")) {
+          const destination = prompt
+            .toLowerCase()
+            .split("take me to ")[1]
+            .trim()
+            .toUpperCase();
+          if (globalPlaces[destination]) {
+            this.pendingActions[npcId] = "FOLLOW";
+            this.dialogueBox.show("I will take you there!");
+            this.executeNpcAction(
+              npcId,
+              `${destination} [Guiding player to ${destination}]`
+            );
+          } else {
+            this.dialogueBox.show("I don't know where that is.");
+          }
+        } else {
+          Ai_response_log(prompt, this.name).then(async (response: any) => {
+            this.dialogueBox.show(response);
+            console.log("Groot's response:", response);
+            this.npcStates[npcId].isInteracting = false;
+          });
+        }
       } else {
         this.npcStates[npcId].isInteracting = false;
       }
