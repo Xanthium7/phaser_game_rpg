@@ -363,191 +363,65 @@ export default class Preloader extends Scene {
 
   // Initialize the agentic system for the NPC
   private initializeNpcAgent(): void {
-    console.log("Initializing NPC Agent...");
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 3000, // lowered delay for debugging (originally this.DECISION_INTERVAL)
-      callback: this.npcThink,
+      delay: 2000,
+      callback: this.decideNpcAction,
       callbackScope: this,
       loop: true,
     });
-
-    ["npc_log", "npctest"].forEach((npcId) => {
-      this.npcStates[npcId] = {
-        isMoving: false,
-        currentAction: null,
-        lastActionTime: 0,
-        isInteracting: false,
-        currentPlan: null,
-      };
-      this.lastReflectionTime[npcId] = Date.now();
-    });
-    console.log("NPC states initialized:", this.npcStates);
   }
 
-  private async npcThink(): Promise<void> {
-    console.log("npcThink triggered at", new Date().toLocaleTimeString());
-    for (const npcId of Object.keys(this.npcStates)) {
-      const state = this.npcStates[npcId];
-      console.log(`Processing NPC ${npcId} with state:`, state);
-
-      // Skip if NPC is busy
-      if (state.isInteracting || state.isMoving) {
-        console.log(
-          `Skipping NPC ${npcId} because it is busy (isInteracting: ${state.isInteracting}, isMoving: ${state.isMoving})`
-        );
-        continue;
-      }
-
-      const currentTime = Date.now();
-      const shouldReflect =
-        currentTime - (this.lastReflectionTime[npcId] || 0) >
-        this.REFLECTION_COOLDOWN;
-      const currentLocation = this.getCurrentLocation(npcId);
-
-      // Build game state info and log it
-      const gameState = {
-        location: currentLocation,
-        time: new Date().toLocaleTimeString(),
-        mood: "neutral",
-        environment: {
-          nearbyPlayers: Object.keys(this.players).length,
-          nearbyNPCs: Object.keys(this.npcProperties).filter(
-            (id) => id !== npcId
-          ),
-        },
-        availableActions: [
-          "LIBRARY",
-          "CHILLMART",
-          "DROOPYVILLE",
-          "PARK",
-          "PLAYER",
-          "WANDER",
-          "IDLE",
-        ],
-      };
-      console.log(`NPC ${npcId} gameState:`, gameState);
-
-      // Retrieve NPC properties and build context
-      const npcProps = this.npcProperties[npcId];
-      const { buildNpcContext } = await import("@/actions/actions");
-      const npcContext = await buildNpcContext(npcProps, gameState);
-      console.log(`NPC ${npcId} context:`, npcContext);
-
-      let plan;
-      if (shouldReflect) {
-        const reflection = await reflectOnMemories(this.name, npcId);
-        console.log(`NPC ${npcId} reflection:`, reflection);
-        plan = await generatePlan(
-          this.name,
-          npcId,
-          currentLocation,
-          reflection,
-          npcContext
-        );
-        this.lastReflectionTime[npcId] = currentTime;
-      } else {
-        plan = await generatePlan(
-          this.name,
-          npcId,
-          currentLocation,
-          undefined,
-          npcContext
-        );
-      }
-      console.log(`NPC ${npcId} plan:`, plan);
-      await this.executeNpcAction(npcId, plan);
-    }
-  }
-
-  private async executeNpcAction(npcId: string, action: string): Promise<void> {
-    if (!action) return;
-
-    const state = this.npcStates[npcId];
-    state.currentAction = action;
-    state.lastActionTime = Date.now();
-    state.isMoving = true;
+  // Function to decide NPC's next action
+  private async decideNpcAction(): Promise<void> {
+    const npcName = "npc_log";
+    console.log(`Deciding action for ${npcName}`);
+    const action = await getNpcAction(npcName);
+    console.log(`NPC ${npcName} decided to ${action}`);
 
     const [actionType, reason] = action.split(" [");
-    const reasonText = reason?.slice(0, -1) || "";
+    const reasonText = reason.slice(0, -1); // Remove the trailing ']'
 
-    try {
-      switch (actionType.toUpperCase()) {
-        case "IDLE":
-          this.gridEngine.stopMovement(npcId);
-          break;
-
-        case "WANDER":
-          this.gridEngine.moveRandomly(npcId, 2000);
-          break;
-
-        case "PLAYER":
-          const playerPosition = this.gridEngine.getPosition(this.socket.id);
-          await this.moveNpcToPosition(npcId, playerPosition);
-          break;
-
-        case "FOLLOW":
-          if (this.pendingActions[npcId] === "FOLLOW") {
-            const playerPos = this.gridEngine.getPosition(this.socket.id);
-            await this.moveNpcToPosition(npcId, playerPos);
-          }
-          break;
-
-        default:
-          const targetLocation = globalPlaces[actionType.toUpperCase()];
-          if (targetLocation) {
-            await this.moveNpcToPosition(npcId, targetLocation);
-          }
-      }
-
-      await update_Groot_memory(
-        `\n*${npcId} ${actionType.toLowerCase()}: ${reasonText}*\n`,
-        this.name
-      );
-    } catch (error) {
-      console.error(`Error executing action for ${npcId}:`, error);
+    switch (actionType) {
+      case "IDLE":
+        console.log(`Groot stays idle: ${reasonText}`);
+        this.gridEngine.moveRandomly("npc_log");
+        break;
+      case "WANDER":
+        console.log(`Groot wanders around: ${reasonText}`);
+        this.gridEngine.moveRandomly("npc_log", 500);
+        break;
+      case "PLAYER":
+        console.log(`Groot moves to the player: ${reasonText}`);
+        const playerPosition = this.gridEngine.getPosition(this.socket.id);
+        console.log(
+          `Player position: x=${playerPosition.x}, y=${playerPosition.y}`
+        );
+        this.gridEngine.moveTo("npc_log", playerPosition);
+        break;
+      case "CHILLMART":
+        console.log(`Groot moves to Chilli Mart: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.CHILLMART);
+        break;
+      case "DROOPYVILLE":
+        console.log(`Groot moves to Droopyville: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.DROOPYVILLE);
+        break;
+      case "LIBRARY":
+        console.log(`Groot moves to Library: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.LIBRARY);
+        break;
+      case "MART":
+        console.log(`Groot moves to Mart: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.MART);
+        break;
+      case "PARK":
+        console.log(`Groot moves to Park: ${reasonText}`);
+        this.gridEngine.moveTo("npc_log", globalPlaces.PARK);
+        break;
+      default:
+        console.log(`Unknown action: ${actionType}`);
+        this.gridEngine.moveRandomly("npc_log", 1000);
     }
-
-    // Reset movement state when movement stops
-    this.gridEngine.movementStopped().subscribe(({ charId }) => {
-      if (charId === npcId) {
-        this.npcStates[npcId].isMoving = false;
-        this.npcStates[npcId].currentAction = null;
-      }
-    });
-  }
-
-  private async moveNpcToPosition(
-    npcId: string,
-    position: { x: number; y: number }
-  ): Promise<void> {
-    return new Promise((resolve) => {
-      this.gridEngine.moveTo(npcId, position);
-
-      const subscription = this.gridEngine
-        .movementStopped()
-        .subscribe(({ charId }) => {
-          if (charId === npcId) {
-            subscription.unsubscribe();
-            resolve();
-          }
-        });
-    });
-  }
-
-  private getCurrentLocation(npcId: string): string {
-    const position = this.gridEngine.getPosition(npcId);
-
-    // Check nearby places with a tolerance
-    for (const [name, coords] of Object.entries(globalPlaces)) {
-      if (
-        Math.abs(position.x - coords.x) <= 5 &&
-        Math.abs(position.y - coords.y) <= 5
-      ) {
-        return name;
-      }
-    }
-
-    return "UNKNOWN";
   }
 
   private handleVideoCall(): void {
@@ -615,9 +489,9 @@ export default class Preloader extends Scene {
         break;
     }
 
-    // this.dialogueBox.show(
-    //   `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
-    // );
+    this.dialogueBox.show(
+      `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
+    );
     if (
       (targetPosition.x === 82 && targetPosition.y === 89) ||
       (targetPosition.x === 81 && targetPosition.y === 89) ||
@@ -689,56 +563,18 @@ export default class Preloader extends Scene {
     );
 
     if (distance <= 1) {
-      const npcId = "npc_log";
-      this.npcStates[npcId].isInteracting = true;
+      // Pause the NPC decision timer
+      this.npcDecisionInterval.paused = true;
 
       console.log("Talking to Groot...");
-      const prompt = window.prompt("Talk to Groot: ");
+      const userInput = window.prompt("Talk to Groot: ");
+      // You can use 'userInput' if needed
 
-      if (prompt !== null) {
-        // Check for movement commands
-        if (prompt.toLowerCase().includes("take me to")) {
-          const destination = prompt
-            .toLowerCase()
-            .split("take me to ")[1]
-            .trim()
-            .toUpperCase();
-          if (globalPlaces[destination]) {
-            this.pendingActions[npcId] = "FOLLOW";
-            this.dialogueBox.show("I will take you there!");
-            this.executeNpcAction(
-              npcId,
-              `${destination} [Guiding player to ${destination}]`
-            );
-          } else {
-            this.dialogueBox.show("I don't know where that is.");
-          }
-        } else {
-          Ai_response_log(prompt, this.name).then(async (response: any) => {
-            this.dialogueBox.show(response);
-            console.log("Groot's response:", response);
-            this.npcStates[npcId].isInteracting = false;
-          });
-        }
-      } else {
-        this.npcStates[npcId].isInteracting = false;
-      }
-    }
-
-    const npcTestPosition = this.gridEngine.getPosition("npctest");
-    const distanceToTest = Phaser.Math.Distance.Between(
-      targetPosition.x,
-      targetPosition.y,
-      npcTestPosition.x,
-      npcTestPosition.y
-    );
-
-    if (distanceToTest <= 1) {
-      console.log("Talking to Test NPC...");
-      const prompt = window.prompt("Talk to Test NPC: ");
-      if (prompt !== null) {
-        this.dialogueBox.show("Hello! I'm Test NPC!");
-      }
+      // Resume the decision timer
+      this.npcDecisionInterval.paused = false;
+    } else {
+      // Resume the decision timer if prompt is canceled
+      this.npcDecisionInterval.paused = false;
     }
   }
 
