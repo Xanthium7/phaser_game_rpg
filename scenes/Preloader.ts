@@ -9,8 +9,6 @@ import {
   update_Groot_memory,
 } from "@/actions/actions";
 import { groot_log_prompt } from "@/characterPrompts";
-import { use } from "matter";
-// import { Ai_response } from "@/actions/actions";
 
 // to prevent chat controls from messing with game controls
 declare global {
