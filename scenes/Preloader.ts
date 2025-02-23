@@ -61,6 +61,8 @@ export default class Preloader extends Scene {
       personality: "calm, curious, and a natural leader",
       systemPrompt: groot_log_prompt,
       memories: "",
+      currentAction: "NONE",
+      lastAction: "NONE",
       location: "",
       availableActions: [
         "GO TO CHILLMART",
@@ -113,6 +115,7 @@ export default class Preloader extends Scene {
       frameHeight: 32,
     });
   }
+
   create() {
     const map = this.make.tilemap({ key: "map" });
     const tileset = map.addTilesetImage("Overworld", "tileset");
@@ -368,7 +371,7 @@ export default class Preloader extends Scene {
   // Initialize the agentic system for the NPC
   private initializeNpcAgent() {
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 300000,
+      delay: 120000,
       callback: this.decideNpcAction,
       callbackScope: this,
       loop: true,
@@ -424,6 +427,9 @@ export default class Preloader extends Scene {
       case "IDLE":
         console.log(`Groot stays idle: ${reasonText}`);
         this.gridEngine.stopMovement("npc_log");
+        setTimeout(async () => {
+          await update_Groot_memory(`I finished staying idle`, this.name);
+        }, 30000);
         break;
       case "WANDER":
         console.log(`Groot wanders around: ${reasonText}`);
@@ -605,6 +611,10 @@ export default class Preloader extends Scene {
         Ai_response("npc_log", userInput, this.name).then((response) => {
           console.log("Groot Response:", response);
           this.dialogueBox.show(response);
+
+          if (response.includes("[") && response.includes("]")) {
+            this.decideNpcAction();
+          }
         });
       }
 
@@ -859,7 +869,7 @@ export default class Preloader extends Scene {
           id: playerId,
           x: currentPosition.x,
           y: currentPosition.y,
-          speed: speed, // Include current speed
+          speed: speed,
         });
       }
     }

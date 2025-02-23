@@ -11,6 +11,8 @@ export interface NPCProperties {
   personality: string;
   systemPrompt: string;
   memories?: string;
+  currentAction?: string;
+  lastAction?: string;
   location?: string;
   availableActions?: string[];
 }
@@ -37,17 +39,33 @@ export async function Ai_response(
           content: `
         ${groot_log_prompt}
 
-        You have a memory of the following conversation and events:
+        CONVERSATION HISTORY:
         ${memory}
 
-        
-      `,
+        AVAILABLE ACTIONS:
+        - GO TO CHILLMART
+        - GO TO LIBRARY
+        - GO TO DROOPYVILLE
+        - GO TO PARK
+        - GO TO PLAYER
+        - WANDER AROUND
+        - STAY IDLE
+
+        RESPONSE FORMAT:
+        1. If the user's request requires an action:
+           Respond with: "Message [ACTION_NAME]"
+           Example: "I'll get some snacks! [GO TO CHILLMART]"
+
+        2. If no action is needed:
+           Respond with just the message
+           Example: "Hello! Nice to meet you!"
+
+        Remember to maintain character personality and reference past conversations naturally.
+        `,
         },
         {
           role: "user",
-          content: `
-          ${username} : ${prompt}\n
-      `,
+          content: `${username}: ${prompt}`,
         },
       ],
       model: "llama-3.3-70b-versatile",
@@ -97,7 +115,7 @@ export async function getNpcAction(
       You must respond with exactly: ActionName [reasoning]
       - ActionName should be a selected as exact action from the available actions.
       - [reasoning] must be in square brackets
-  
+    
       
       Example valid responses:
       WANDER [looking for adventure]
@@ -112,6 +130,8 @@ export async function getNpcAction(
       - Personality: ${npc_properties.personality}
       - Background: ${npc_properties.systemPrompt}
       - Current Location: ${npc_properties.location}
+      - Curent Action: ${npc_properties.currentAction}
+      - Last Action: ${npc_properties.lastAction}
       - Recent Memories: ${npc_properties.memories}
       
       Available Actions: ${(npc_properties.availableActions ?? []).join(", ")}
@@ -134,7 +154,11 @@ export async function getNpcAction(
     const [action, ...rest] = response.split("[");
     const reasoning = rest.join("[").replace("]", "").trim();
 
-    console.log("NPC Decision:", { action: action.trim(), reasoning });
+    // Update last and current actions
+    npc_properties.lastAction = npc_properties.currentAction;
+    npc_properties.currentAction = action.trim();
+
+    console.log("NPC Decision:", npc_properties);
 
     update_Groot_memory(
       `\n[*${
