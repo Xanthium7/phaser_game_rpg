@@ -21,9 +21,9 @@ declare global {
 const globalPlaces: { [key: string]: { x: number; y: number } } = {
   CHILLMART: { x: 107, y: 32 },
   DROOPYVILLE: { x: 168, y: 32 },
-  LIBRARY: { x: 43, y: 91 },
+  LIBRARY: { x: 46, y: 107 },
   MART: { x: 118, y: 50 },
-  PARK: { x: 118, y: 50 },
+  PARK: { x: 36, y: 44 },
   // Add more places as needed
 };
 
@@ -74,12 +74,14 @@ export default class Preloader extends Scene {
         "IDLE",
       ],
     },
-    npctest: {
-      name: "Test NPC",
-      personality: "quirky and adventurous",
+    librarian: {
+      name: "Amelia",
+      personality: "clam and relaxed",
       systemPrompt: "You are a test character with a friendly attitude.",
       memories: "",
       location: "",
+      currentAction: "NONE",
+      lastAction: "NONE",
       availableActions: ["talk", "ask_question", "explore", "leave"],
     },
   };
@@ -110,9 +112,9 @@ export default class Preloader extends Scene {
       frameWidth: 32,
       frameHeight: 32,
     });
-    this.load.spritesheet("npctest", "/assets/NPC_test.png", {
-      frameWidth: 16,
-      frameHeight: 32,
+    this.load.spritesheet("librarian", "/assets/librarian.png", {
+      frameWidth: 64,
+      frameHeight: 64,
     });
   }
 
@@ -189,7 +191,7 @@ export default class Preloader extends Scene {
     });
 
     this.addNPCLog();
-    this.addNPCTest(); // Add new NPC
+    this.addlibrarian(); // Add new NPC
 
     // Initialize AI-controlled NPC actions
     this.initializeNpcAgent();
@@ -288,50 +290,55 @@ export default class Preloader extends Scene {
     this.gridEngine.moveRandomly("npc_log", 500);
   }
 
-  private addNPCTest(): void {
-    const startGridPosition = { x: 160, y: 70 }; // Different starting position
-    const npcTest = this.add.sprite(0, 0, "npctest");
+  private addlibrarian(): void {
+    const startGridPosition = { x: 28, y: 104 };
+    const librarian = this.add.sprite(0, 0, "librarian");
+
+    librarian.setScale(0.5);
 
     this.gridEngine.addCharacter({
-      id: "npctest",
-      sprite: npcTest,
+      id: "librarian",
+      sprite: librarian,
       startPosition: startGridPosition,
       speed: 4,
     });
 
-    // Create animations for npctest
+    // Create animations for librarian
     this.anims.create({
-      key: "npctest_walk_down",
-      frames: this.anims.generateFrameNumbers("npctest", { start: 0, end: 3 }),
-      frameRate: 16,
-      repeat: -1,
-    });
-
-    this.anims.create({
-      key: "npctest_walk_left",
-      frames: this.anims.generateFrameNumbers("npctest", {
-        start: 12,
-        end: 15,
+      key: "librarian_walk_down",
+      frames: this.anims.generateFrameNumbers("librarian", {
+        start: 18,
+        end: 26,
       }),
       frameRate: 16,
       repeat: -1,
     });
 
     this.anims.create({
-      key: "npctest_walk_right",
-      frames: this.anims.generateFrameNumbers("npctest", {
-        start: 4,
-        end: 7,
+      key: "librarian_walk_left",
+      frames: this.anims.generateFrameNumbers("librarian", {
+        start: 9,
+        end: 17,
       }),
       frameRate: 16,
       repeat: -1,
     });
 
     this.anims.create({
-      key: "npctest_walk_up",
-      frames: this.anims.generateFrameNumbers("npctest", {
-        start: 8,
-        end: 11,
+      key: "librarian_walk_right",
+      frames: this.anims.generateFrameNumbers("librarian", {
+        start: 27,
+        end: 35,
+      }),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "librarian_walk_up",
+      frames: this.anims.generateFrameNumbers("librarian", {
+        start: 0,
+        end: 8,
       }),
       frameRate: 16,
       repeat: -1,
@@ -339,33 +346,33 @@ export default class Preloader extends Scene {
 
     // Listen to GridEngine movement events
     this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
-      if (charId === "npctest") {
-        npcTest.play(`npctest_walk_${direction}`);
+      if (charId === "librarian") {
+        librarian.play(`librarian_walk_${direction}`);
       }
     });
 
     this.gridEngine.movementStopped().subscribe(({ charId, direction }) => {
-      if (charId === "npctest") {
-        npcTest.anims.stop();
+      if (charId === "librarian") {
+        librarian.anims.stop();
         switch (direction) {
           case "up":
-            npcTest.setFrame(8);
+            librarian.setFrame(8);
             break;
           case "down":
-            npcTest.setFrame(0);
+            librarian.setFrame(0);
             break;
           case "left":
-            npcTest.setFrame(4);
+            librarian.setFrame(4);
             break;
           case "right":
-            npcTest.setFrame(12);
+            librarian.setFrame(12);
             break;
         }
       }
     });
 
     // Make the NPC move randomly
-    this.gridEngine.moveRandomly("npctest", 1500);
+    this.gridEngine.moveRandomly("librarian", 5000);
   }
 
   // Initialize the agentic system for the NPC
@@ -529,9 +536,9 @@ export default class Preloader extends Scene {
         break;
     }
 
-    // this.dialogueBox.show(
-    //   `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
-    // );
+    this.dialogueBox.show(
+      `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
+    );
     if (
       (targetPosition.x === 82 && targetPosition.y === 89) ||
       (targetPosition.x === 81 && targetPosition.y === 89) ||
