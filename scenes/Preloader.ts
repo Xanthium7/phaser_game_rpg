@@ -448,6 +448,7 @@ export default class Preloader extends Scene {
       case "GO TO DROOPYVILLE":
         console.log(`Groot moves to Droopyville: ${reasonText}`);
         this.gridEngine.moveTo("npc_log", globalPlaces.DROOPYVILLE);
+
         break;
       case "GO TO LIBRARY":
         console.log(`Groot moves to Library: ${reasonText}`);
@@ -863,6 +864,7 @@ export default class Preloader extends Scene {
         this.handleInteractivity();
       } else {
       }
+
       if (moved) {
         const currentPosition = this.gridEngine.getPosition(playerId);
         this.socket.emit("playerMovement", {

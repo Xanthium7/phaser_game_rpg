@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import Groq from "groq-sdk";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const model_name = "qwen-2.5-32b";
 
 export interface NPCProperties {
   name: string;
@@ -68,7 +69,7 @@ export async function Ai_response(
           content: `${username}: ${prompt}`,
         },
       ],
-      model: "llama-3.3-70b-versatile",
+      model: model_name,
       temperature: 0.3,
     });
 
@@ -78,7 +79,7 @@ export async function Ai_response(
     return response;
   } catch (error) {
     console.error("getNpcAction Error:", error);
-    return " [error occurred]";
+    return " Groot ran out of Acrons(tokens) so.. yea..  ";
   }
 }
 
@@ -130,7 +131,7 @@ export async function getNpcAction(
       - Personality: ${npc_properties.personality}
       - Background: ${npc_properties.systemPrompt}
       - Current Location: ${npc_properties.location}
-      - Curent Action: ${npc_properties.currentAction}
+      - Current Action: ${npc_properties.currentAction}
       - Last Action: ${npc_properties.lastAction}
       - Recent Memories: ${npc_properties.memories}
       
@@ -140,7 +141,7 @@ export async function getNpcAction(
       `,
         },
       ],
-      model: "llama-3.3-70b-versatile",
+      model: model_name,
       temperature: 0.3,
     });
 
@@ -148,7 +149,7 @@ export async function getNpcAction(
 
     // Validate response format
     if (!response.includes("[") || !response.includes("]")) {
-      return "IDLE [lazy to decide]";
+      return "IDLE [tired to decide]";
     }
 
     const [action, ...rest] = response.split("[");
@@ -158,7 +159,12 @@ export async function getNpcAction(
     npc_properties.lastAction = npc_properties.currentAction;
     npc_properties.currentAction = action.trim();
 
-    console.log("NPC Decision:", npc_properties);
+    console.log("NPC Decision:", {
+      action: action.trim(),
+      reasoning,
+      currentAction: npc_properties.currentAction,
+      lastAction: npc_properties.lastAction,
+    });
 
     update_Groot_memory(
       `\n[*${
@@ -169,7 +175,7 @@ export async function getNpcAction(
     return response;
   } catch (error) {
     console.error("getNpcAction Error:", error);
-    return "IDLE [error occurred]";
+    return "ran out of acorns [error occurred]";
   }
 }
 
