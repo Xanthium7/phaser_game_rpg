@@ -84,6 +84,76 @@ export default class Preloader extends Scene {
       lastAction: "NONE",
       availableActions: ["talk", "ask_question", "explore", "leave"],
     },
+    blacksmith: {
+      name: "Ron",
+      personality: "hardy and skilled craftsman",
+      systemPrompt: "You are a skilled blacksmith who takes pride in your work",
+      memories: "",
+      location: "",
+      currentAction: "NONE",
+      lastAction: "NONE",
+      availableActions: ["talk", "craft", "explore", "rest"],
+    },
+    lisa: {
+      name: "Lisa",
+      personality: "cheerful townsfolk",
+      systemPrompt: "You are a friendly resident of Droopyville",
+      memories: "",
+      location: "",
+      currentAction: "NONE",
+      lastAction: "NONE",
+      availableActions: ["talk", "walk", "shop", "rest"],
+    },
+    anne: {
+      name: "Anne",
+      personality: "busy shopkeeper",
+      systemPrompt: "You run the ChillMart with dedication",
+      memories: "",
+      location: "",
+      currentAction: "NONE",
+      lastAction: "NONE",
+      availableActions: ["talk", "work", "organize", "rest"],
+    },
+    elsa: {
+      name: "Elsa",
+      personality: "mysterious shopper",
+      systemPrompt: "You frequently visit ChillMart looking for rare items",
+      memories: "",
+      location: "",
+      currentAction: "NONE",
+      lastAction: "NONE",
+      availableActions: ["talk", "shop", "browse", "leave"],
+    },
+    tom: {
+      name: "Tom",
+      personality: "adventurous wanderer",
+      systemPrompt: "You travel from town to town seeking adventures",
+      memories: "",
+      location: "",
+      currentAction: "NONE",
+      lastAction: "NONE",
+      availableActions: ["talk", "travel", "rest", "explore"],
+    },
+    brick: {
+      name: "Brick",
+      personality: "tough but fair warrior",
+      systemPrompt: "You are a skilled warrior protecting the town",
+      memories: "",
+      location: "",
+      currentAction: "NONE",
+      lastAction: "NONE",
+      availableActions: ["talk", "patrol", "train", "rest"],
+    },
+    col: {
+      name: "Col",
+      personality: "disciplined warrior",
+      systemPrompt: "You are a warrior maintaining order in the town",
+      memories: "",
+      location: "",
+      currentAction: "NONE",
+      lastAction: "NONE",
+      availableActions: ["talk", "guard", "train", "patrol"],
+    },
   };
 
   constructor() {
@@ -113,6 +183,34 @@ export default class Preloader extends Scene {
       frameHeight: 32,
     });
     this.load.spritesheet("librarian", "/assets/librarian.png", {
+      frameWidth: 64,
+      frameHeight: 64,
+    });
+    this.load.spritesheet("blacksmith", "/assets/blacksmith.png", {
+      frameWidth: 64,
+      frameHeight: 64,
+    });
+    this.load.spritesheet("elsa", "/assets/mart_women.png", {
+      frameWidth: 64,
+      frameHeight: 64,
+    });
+    this.load.spritesheet("anne", "/assets/mart_women2.png", {
+      frameWidth: 64,
+      frameHeight: 64,
+    });
+    this.load.spritesheet("lisa", "/assets/dp_w.png", {
+      frameWidth: 64,
+      frameHeight: 64,
+    });
+    this.load.spritesheet("brick", "/assets/warrior_dp.png", {
+      frameWidth: 64,
+      frameHeight: 64,
+    });
+    this.load.spritesheet("col", "/assets/warrior_dp2.png", {
+      frameWidth: 64,
+      frameHeight: 64,
+    });
+    this.load.spritesheet("traveller", "/assets/traveller.png", {
       frameWidth: 64,
       frameHeight: 64,
     });
@@ -192,6 +290,13 @@ export default class Preloader extends Scene {
 
     this.addNPCLog();
     this.addlibrarian(); // Add new NPC
+    this.addBlacksmith();
+    this.addLisa();
+    this.addAnne();
+    this.addElsa();
+    this.addTom();
+    this.addBrick();
+    this.addCol();
 
     // Initialize AI-controlled NPC actions
     this.initializeNpcAgent();
@@ -375,14 +480,116 @@ export default class Preloader extends Scene {
     this.gridEngine.moveRandomly("librarian", 5000);
   }
 
+  private addBlacksmith(): void {
+    const startGridPosition = { x: 212, y: 56 };
+    const npc = this.add.sprite(0, 0, "blacksmith");
+    npc.setScale(0.5);
+    this.setupNPC("blacksmith", npc, startGridPosition, 200000);
+  }
+
+  private addLisa(): void {
+    const startGridPosition = { x: 198, y: 29 };
+    const npc = this.add.sprite(0, 0, "lisa");
+    npc.setScale(0.5);
+    this.setupNPC("lisa", npc, startGridPosition, 3000);
+  }
+
+  private addAnne(): void {
+    const startGridPosition = { x: 107, y: 35 };
+    const npc = this.add.sprite(0, 0, "anne");
+    npc.setScale(0.5);
+    this.setupNPC("anne", npc, startGridPosition, 4000);
+  }
+
+  private addElsa(): void {
+    const startGridPosition = { x: 110, y: 35 };
+    const npc = this.add.sprite(0, 0, "elsa");
+    npc.setScale(0.5);
+    this.setupNPC("elsa", npc, startGridPosition, 3500);
+  }
+
+  private addTom(): void {
+    const startGridPosition = { x: 130, y: 70 };
+    const npc = this.add.sprite(0, 0, "traveller");
+    npc.setScale(0.5);
+    this.setupNPC("tom", npc, startGridPosition, 1500);
+  }
+
+  private addBrick(): void {
+    const startGridPosition = { x: 100, y: 32 };
+    const npc = this.add.sprite(0, 0, "brick");
+    npc.setScale(0.5);
+    this.setupNPC("brick", npc, startGridPosition, 5000);
+  }
+
+  private addCol(): void {
+    const startGridPosition = { x: 201, y: 55 };
+    const npc = this.add.sprite(0, 0, "col");
+    npc.setScale(0.5);
+    this.setupNPC("col", npc, startGridPosition, 5000);
+  }
+
+  private setupNPC(
+    id: string,
+    sprite: Phaser.GameObjects.Sprite,
+    startPosition: { x: number; y: number },
+    randomMoveDelay: number
+  ): void {
+    this.gridEngine.addCharacter({
+      id,
+      sprite,
+      startPosition,
+      speed: 4,
+    });
+
+    // Create animations
+    const animationKeys = ["up", "down", "left", "right"];
+    animationKeys.forEach((direction, index) => {
+      this.anims.create({
+        key: `${id}_walk_${direction}`,
+        frames: this.anims.generateFrameNumbers(sprite.texture.key, {
+          start: index * 9,
+          end: index * 9 + 8,
+        }),
+        frameRate: 16,
+        repeat: -1,
+      });
+    });
+
+    // Movement listeners
+    this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
+      if (charId === id) {
+        sprite.play(`${id}_walk_${direction}`);
+      }
+    });
+
+    this.gridEngine.movementStopped().subscribe(({ charId, direction }) => {
+      if (charId === id) {
+        sprite.anims.stop();
+        sprite.setFrame(
+          direction === "up"
+            ? 0
+            : direction === "left"
+            ? 9
+            : direction === "down"
+            ? 18
+            : 27
+        );
+      }
+    });
+
+    // Start random movement
+    this.gridEngine.moveRandomly(id, randomMoveDelay);
+  }
+
   // Initialize the agentic system for the NPC
   private initializeNpcAgent() {
-    this.npcDecisionInterval = this.time.addEvent({
-      delay: 120000,
-      callback: this.decideNpcAction,
-      callbackScope: this,
-      loop: true,
-    });
+    // this.npcDecisionInterval = this.time.addEvent({
+    //   delay: 120000,
+    //   callback: this.decideNpcAction,
+    //   callbackScope: this,
+    //   loop: true,
+    // });
   }
 
   private getNpcLocation(npcName: string): string {
