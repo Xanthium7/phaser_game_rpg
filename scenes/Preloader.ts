@@ -9,6 +9,8 @@ import {
   update_Groot_memory,
 } from "@/actions/actions";
 import { groot_log_prompt } from "@/characterPrompts";
+import npcStateManager, { NPCAction } from "../utils/npcStateManager";
+import npcInteractionManager from "../utils/npcInteractions";
 
 // to prevent chat controls from messing with game controls
 declare global {
@@ -77,7 +79,7 @@ export default class Preloader extends Scene {
     librarian: {
       name: "Amelia",
       personality: "clam and relaxed",
-      systemPrompt: "You are a test character with a friendly attitude.",
+      systemPrompt: "You are a librarian with a friendly attitude.",
       memories: "",
       location: "",
       currentAction: "NONE",
@@ -155,6 +157,11 @@ export default class Preloader extends Scene {
       availableActions: ["talk", "guard", "train", "patrol"],
     },
   };
+
+  // Add new properties for NPC management
+  private npcFollowUpActions: Map<string, Phaser.Time.TimerEvent> = new Map();
+  private npcPositions: Record<string, { x: number; y: number }> = {};
+  private npcInteractionCheckTimer: Phaser.Time.TimerEvent | null = null;
 
   constructor() {
     super("Preloader");
@@ -312,9 +319,25 @@ export default class Preloader extends Scene {
     this.gridEngine.movementStopped().subscribe(({ charId, direction }) => {
       const sprite = this.players[charId];
       if (sprite) {
+        // Stop the walking animation
         sprite.anims.stop();
-        // Play idle animation based on direction
-        sprite.play(`${charId}_idle_${direction}`);
+
+        // Set the correct idle frame for the current direction
+        const characterGridWidth = this.characterGridWidths[charId] || 0;
+        switch (direction) {
+          case "up":
+            sprite.setFrame(34 + characterGridWidth);
+            break;
+          case "right":
+            sprite.setFrame(17 + characterGridWidth);
+            break;
+          case "down":
+            sprite.setFrame(0 + characterGridWidth);
+            break;
+          case "left":
+            sprite.setFrame(51 + characterGridWidth);
+            break;
+        }
       }
     });
 
@@ -346,6 +369,37 @@ export default class Preloader extends Scene {
           speed: 4,
         });
       }
+    });
+
+    // Initialize all NPCs in state manager
+    Object.keys(this.npcProperties).forEach((npcId) => {
+      npcStateManager.initializeNPC(npcId);
+    });
+
+    // Set up regular interaction checks
+    this.npcInteractionCheckTimer = this.time.addEvent({
+      delay: 30000,
+      callback: this.checkForPossibleNPCInteractions,
+      callbackScope: this,
+      loop: true,
+    });
+
+    // Set up regular cleanup of expired interactions
+    this.time.addEvent({
+      delay: 5000, // Check every 5 seconds
+      callback: () => npcInteractionManager.cleanupExpiredInteractions(),
+      callbackScope: this,
+      loop: true,
+    });
+
+    // Add movement completion tracking
+    this.gridEngine
+      .movementStopped()
+      .subscribe(this.handleMovementStopped.bind(this));
+
+    // Start NPCs with initial delay
+    this.time.delayedCall(2000, () => {
+      this.decideNpcAction("npc_log");
     });
   }
 
@@ -584,12 +638,12 @@ export default class Preloader extends Scene {
 
   // Initialize the agentic system for the NPC
   private initializeNpcAgent() {
-    // this.npcDecisionInterval = this.time.addEvent({
-    //   delay: 120000,
-    //   callback: this.decideNpcAction,
-    //   callbackScope: this,
-    //   loop: true,
-    // });
+    this.npcDecisionInterval = this.time.addEvent({
+      delay: 120000,
+      callback: this.decideNpcAction,
+      callbackScope: this,
+      loop: true,
+    });
   }
 
   private getNpcLocation(npcName: string): string {
@@ -607,74 +661,129 @@ export default class Preloader extends Scene {
   }
 
   // Function to decide NPC's next action
-  private async decideNpcAction(): Promise<void> {
-    const npcName = "npc_log";
-    console.log(`Deciding action for ${npcName}`);
+  private async decideNpcAction(npcId: string = "npc_log"): Promise<void> {
+    const npc = this.npcProperties[npcId];
+    if (!npc) return;
 
-    const location = this.getNpcLocation(npcName);
-    this.npcProperties[npcName].location = location;
-    const groot_memory = await get_npc_memeory("npc_log", this.name);
-    this.npcProperties["npc_log"].memories = groot_memory;
+    // Skip if NPC is already in an interaction or moving
+    const currentState = npcStateManager.getState(npcId);
+    if (currentState === "interacting" || currentState === "moving") {
+      console.log(
+        `Skipping decision for ${npcId} - current state: ${currentState}`
+      );
+      return;
+    }
 
-    const action = await getNpcAction(this.npcProperties[npcName], this.name);
-    console.log(`NPC ${npcName} decided to ${action}`);
+    console.log(`Deciding action for ${npcId} (${npc.name})`);
 
-    let [actionType, reason] = action.split(" [");
+    // Update NPC location
+    const location = this.getNpcLocation(npcId);
+    npc.location = location;
+
+    // For Groot, get memory
+    if (npcId === "npc_log") {
+      const groot_memory = await get_npc_memeory("npc_log", this.name);
+      npc.memories = groot_memory;
+    }
+
+    // Store the real previous action state
+    const previousAction = npc.currentAction || "NONE";
+    npc.lastAction = previousAction;
+
+    // Get action from AI
+    const actionResponse = await getNpcAction(npc, this.name);
+    let [actionType, reason] = actionResponse.split(" [");
     const reasonText = reason ? reason.slice(0, -1) : "";
 
-    if (actionType === "WANDER") {
-      const playerPosition = this.gridEngine.getPosition(this.socket.id);
-      const npcPosition = this.gridEngine.getPosition(npcName);
-      const distance = Phaser.Math.Distance.Between(
-        playerPosition.x,
-        playerPosition.y,
-        npcPosition.x,
-        npcPosition.y
+    // Update NPC state
+    npc.currentAction = actionType.trim();
+
+    console.log(`NPC ${npcId} decided to ${actionType} because ${reasonText}`);
+    console.log(
+      `Previous action was: ${previousAction}, New action: ${actionType}`
+    );
+
+    // Create an action record
+    const action: NPCAction = {
+      type: actionType.trim(),
+      reason: reasonText,
+      startTime: Date.now(),
+      completed: false,
+    };
+
+    // Set action in state manager
+    npcStateManager.setCurrentAction(npcId, action);
+    npcStateManager.setState(npcId, "moving");
+
+    // Execute the action
+    await this.executeNpcAction(npcId, actionType.trim(), reasonText);
+  }
+
+  private async executeNpcAction(
+    npcId: string,
+    actionType: string,
+    reasoning: string
+  ): Promise<void> {
+    // For Groot, update memory about the decision
+    if (npcId === "npc_log") {
+      await update_Groot_memory(
+        `I decided to ${actionType} because ${reasoning}`,
+        this.name
       );
-      console.log(`Distance from player: ${distance}`);
-      if (distance < 5) {
-        actionType = "PLAYER";
-        console.log("Overriding WANDER to PLAYER due to proximity");
-      }
     }
+
     switch (actionType) {
       case "IDLE":
-        console.log(`Groot stays idle: ${reasonText}`);
-        this.gridEngine.stopMovement("npc_log");
-        setTimeout(async () => {
-          await update_Groot_memory(`I finished staying idle`, this.name);
-        }, 30000);
-        break;
-      case "WANDER":
-        console.log(`Groot wanders around: ${reasonText}`);
-        this.gridEngine.moveRandomly("npc_log", 500);
-        break;
-      case "GO TO PLAYER":
-        console.log(`Groot moves to the player: ${reasonText}`);
-        const playerPos = this.gridEngine.getPosition(this.socket.id);
-        console.log(`Player position: x=${playerPos.x}, y=${playerPos.y}`);
-        this.gridEngine.moveTo("npc_log", playerPos);
-        break;
-      case "GO TO CHILLMART":
-        console.log(`Groot moves to Chilli Mart: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.CHILLMART);
-        break;
-      case "GO TO DROOPYVILLE":
-        console.log(`Groot moves to Droopyville: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.DROOPYVILLE);
+        this.gridEngine.stopMovement(npcId);
+        console.log(`${npcId} stays idle: ${reasoning}`);
 
+        // After idle period, complete action
+        this.time.delayedCall(20000, () => {
+          npcStateManager.completeCurrentAction(npcId);
+          this.scheduleFollowUpAction(npcId);
+        });
         break;
+
+      case "WANDER":
+        this.gridEngine.moveRandomly(npcId, 500);
+        console.log(`${npcId} wanders around: ${reasoning}`);
+
+        // After wandering period, complete action
+        this.time.delayedCall(45000, () => {
+          npcStateManager.completeCurrentAction(npcId);
+          this.scheduleFollowUpAction(npcId);
+        });
+        break;
+
+      case "GO TO PLAYER":
+        const playerPos = this.gridEngine.getPosition(this.socket.id);
+        console.log(
+          `${npcId} moves to player at ${playerPos.x},${playerPos.y}: ${reasoning}`
+        );
+        this.gridEngine.moveTo(npcId, playerPos);
+        break;
+
+      case "GO TO CHILLMART":
+      case "GO TO DROOPYVILLE":
       case "GO TO LIBRARY":
-        console.log(`Groot moves to Library: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.LIBRARY);
-        break;
       case "GO TO PARK":
-        console.log(`Groot moves to Park: ${reasonText}`);
-        this.gridEngine.moveTo("npc_log", globalPlaces.PARK);
+        const placeName = actionType.replace("GO TO ", "");
+        const destination = globalPlaces[placeName];
+
+        if (destination) {
+          console.log(`${npcId} moves to ${placeName}: ${reasoning}`);
+          this.gridEngine.moveTo(npcId, destination);
+        } else {
+          console.error(`Unknown place: ${placeName}`);
+          this.gridEngine.moveRandomly(npcId, 1000);
+        }
         break;
+
+      // ... other action cases ...
+
       default:
         console.log(`Unknown action: ${actionType}`);
-        this.gridEngine.moveRandomly("npc_log", 1000);
+        this.gridEngine.moveRandomly(npcId, 1000);
     }
   }
 
@@ -743,9 +852,9 @@ export default class Preloader extends Scene {
         break;
     }
 
-    this.dialogueBox.show(
-      `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
-    );
+    // this.dialogueBox.show(
+    //   `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
+    // );
     if (
       (targetPosition.x === 82 && targetPosition.y === 89) ||
       (targetPosition.x === 81 && targetPosition.y === 89) ||
@@ -965,7 +1074,6 @@ export default class Preloader extends Scene {
     );
 
     // Add idle animations
-    this.createIdleAnimation(playerInfo.id, characterGridWidth);
 
     this.players[playerInfo.id] = sprite;
 
@@ -995,45 +1103,6 @@ export default class Preloader extends Scene {
       this.cameras.main.startFollow(sprite, true);
       this.cameras.main.setFollowOffset(-sprite.width, -sprite.height);
     }
-  }
-
-  private createIdleAnimation(playerId: string, characterGridWidth: number) {
-    // Create idle animations for each direction
-    this.anims.create({
-      key: `${playerId}_idle_down`,
-      frames: this.anims.generateFrameNumbers("hero", {
-        frames: [2 + characterGridWidth, 2 + characterGridWidth],
-      }),
-      frameRate: 2,
-      repeat: -1,
-    });
-
-    this.anims.create({
-      key: `${playerId}_idle_right`,
-      frames: this.anims.generateFrameNumbers("hero", {
-        frames: [17 + characterGridWidth],
-      }),
-      frameRate: 2,
-      repeat: -1,
-    });
-
-    this.anims.create({
-      key: `${playerId}_idle_up`,
-      frames: this.anims.generateFrameNumbers("hero", {
-        frames: [39 + characterGridWidth, 40 + characterGridWidth],
-      }),
-      frameRate: 2,
-      repeat: -1,
-    });
-
-    this.anims.create({
-      key: `${playerId}_idle_left`,
-      frames: this.anims.generateFrameNumbers("hero", {
-        frames: [51 + characterGridWidth],
-      }),
-      frameRate: 2,
-      repeat: -1,
-    });
   }
 
   update() {
@@ -1077,6 +1146,27 @@ export default class Preloader extends Scene {
       } else if (this.cursors.space.isDown) {
         this.handleInteractivity();
       } else {
+        // If no movement keys are pressed, ensure the correct idle frame is set
+        const sprite = this.players[playerId];
+        const direction = this.gridEngine.getFacingDirection(playerId);
+        const characterGridWidth = this.characterGridWidths[playerId] || 0;
+
+        if (sprite) {
+          switch (direction) {
+            case "up":
+              sprite.setFrame(34 + characterGridWidth);
+              break;
+            case "right":
+              sprite.setFrame(17 + characterGridWidth);
+              break;
+            case "down":
+              sprite.setFrame(0 + characterGridWidth);
+              break;
+            case "left":
+              sprite.setFrame(51 + characterGridWidth);
+              break;
+          }
+        }
       }
 
       if (moved) {
@@ -1089,5 +1179,189 @@ export default class Preloader extends Scene {
         });
       }
     }
+  }
+
+  // Add this method to check for possible interactions between NPCs
+  private checkForPossibleNPCInteractions(): void {
+    // Update all NPC positions
+    Object.keys(this.npcProperties).forEach((npcId) => {
+      if (this.gridEngine.hasCharacter(npcId)) {
+        this.npcPositions[npcId] = this.gridEngine.getPosition(npcId);
+      }
+    });
+
+    // Check for NPCs close to each other
+    const npcIds = Object.keys(this.npcProperties);
+    for (let i = 0; i < npcIds.length; i++) {
+      const npc1Id = npcIds[i];
+
+      // Skip if NPC is already interacting or moving
+      if (npcStateManager.getState(npc1Id) !== "idle") continue;
+
+      for (let j = i + 1; j < npcIds.length; j++) {
+        const npc2Id = npcIds[j];
+
+        // Skip if NPC is already interacting or moving
+        if (npcStateManager.getState(npc2Id) !== "idle") continue;
+
+        const pos1 = this.npcPositions[npc1Id];
+        const pos2 = this.npcPositions[npc2Id];
+
+        if (!pos1 || !pos2) continue;
+
+        // Check if NPCs are close to each other
+        const distance = Phaser.Math.Distance.Between(
+          pos1.x,
+          pos1.y,
+          pos2.x,
+          pos2.y
+        );
+
+        if (distance <= 2) {
+          // Close enough to interact
+          this.initiateNPCInteraction(npc1Id, npc2Id);
+          return; // Only start one interaction at a time
+        }
+      }
+    }
+  }
+
+  // Method to handle movement completion
+  private handleMovementStopped({
+    charId,
+  }: {
+    charId: string;
+    direction: string;
+  }): void {
+    // Only handle NPCs, not players
+    if (charId === this.socket.id) return;
+    if (!this.npcProperties[charId]) return;
+
+    console.log(`NPC ${charId} stopped moving`);
+
+    // Update NPC location and memory
+    const location = this.getNpcLocation(charId);
+    this.npcProperties[charId].location = location;
+
+    // Complete the current action
+    const currentAction = npcStateManager.getCurrentAction(charId);
+    if (currentAction && !currentAction.completed) {
+      npcStateManager.completeCurrentAction(charId);
+
+      // Update memory for Groot
+      if (charId === "npc_log") {
+        update_Groot_memory(`I arrived at ${location}`, this.name);
+      }
+
+      // Schedule follow-up action
+      this.scheduleFollowUpAction(charId);
+    }
+  }
+
+  // Schedule what to do after completing an action
+  private scheduleFollowUpAction(npcId: string): void {
+    // Cancel any existing follow-up
+    if (this.npcFollowUpActions.has(npcId)) {
+      this.npcFollowUpActions.get(npcId)?.remove();
+    }
+
+    // Random delay between 5-15 seconds
+    const delay = Phaser.Math.Between(5000, 15000);
+
+    const timer = this.time.delayedCall(delay, () => {
+      // 50% chance to wander at destination, 50% to make a new decision
+      if (Math.random() > 0.5) {
+        this.gridEngine.moveRandomly(npcId, 1000);
+        console.log(`${npcId} is now wandering at the destination`);
+
+        // Schedule next decision after wandering
+        const nextDecisionDelay = Phaser.Math.Between(30000, 60000);
+        this.time.delayedCall(nextDecisionDelay, () => {
+          this.decideNpcAction(npcId);
+        });
+      } else {
+        this.decideNpcAction(npcId);
+      }
+    });
+
+    this.npcFollowUpActions.set(npcId, timer);
+  }
+
+  // Method to initiate interaction between NPCs
+  private initiateNPCInteraction(npc1Id: string, npc2Id: string): void {
+    const npc1 = this.npcProperties[npc1Id];
+    const npc2 = this.npcProperties[npc2Id];
+
+    if (!npc1 || !npc2) return;
+
+    const npc1Name = npc1.name;
+    const npc2Name = npc2.name;
+
+    console.log(`Starting interaction between ${npc1Name} and ${npc2Name}`);
+
+    // Stop movement for both NPCs
+    this.gridEngine.stopMovement(npc1Id);
+    this.gridEngine.stopMovement(npc2Id);
+
+    // Make them face each other
+    const pos1 = this.gridEngine.getPosition(npc1Id);
+    const pos2 = this.gridEngine.getPosition(npc2Id);
+
+    if (pos1.x < pos2.x) {
+      this.gridEngine.turnTowards(npc1Id, Direction.RIGHT);
+      this.gridEngine.turnTowards(npc2Id, Direction.LEFT);
+    } else {
+      this.gridEngine.turnTowards(npc1Id, Direction.LEFT);
+      this.gridEngine.turnTowards(npc2Id, Direction.RIGHT);
+    }
+
+    // Start interaction
+    const description = `discussing their day`;
+    const interaction = npcInteractionManager.startInteraction(
+      npc1Id,
+      npc2Id,
+      npc1Name,
+      npc2Name,
+      "chat",
+      30000,
+      description
+    );
+
+    // Update memory for Groot if involved
+    if (npc1Id === "npc_log" || npc2Id === "npc_log") {
+      const otherName = npc1Id === "npc_log" ? npc2Name : npc1Name;
+      update_Groot_memory(
+        `I met with ${otherName} and we started ${description}`,
+        this.name
+      );
+    }
+    // Show visual indication of interaction
+    const bubbleX = ((pos1.x + pos2.x) * 16) / 2;
+    const bubbleY = Math.min(pos1.y, pos2.y) * 16 - 20;
+
+    const chatBubble = this.add
+      .text(bubbleX, bubbleY, "💬", {
+        fontSize: "20px",
+      })
+      .setOrigin(0.5);
+
+    // Fade out and destroy chat bubble when interaction ends
+    this.tweens.add({
+      targets: chatBubble,
+      alpha: { from: 1, to: 0 },
+      duration: interaction.duration,
+      ease: "Linear",
+      onComplete: () => {
+        chatBubble.destroy();
+      },
+    });
+
+    // After interaction ends, schedule new decisions
+    this.time.delayedCall(interaction.duration + 100, () => {
+      this.decideNpcAction(npc1Id);
+      this.time.delayedCall(2000, () => {
+        this.decideNpcAction(npc2Id);
+      });
+    });
   }
 }

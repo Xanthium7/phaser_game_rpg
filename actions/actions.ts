@@ -3,6 +3,7 @@
 import { groot_brain_log_prompt, groot_log_prompt } from "@/characterPrompts";
 import { prisma } from "@/lib/db";
 import Groq from "groq-sdk";
+import npcStateManager from "../utils/npcStateManager";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const model_name = "qwen-2.5-32b";
@@ -105,23 +106,41 @@ export async function getNpcAction(
   username: string
 ): Promise<string> {
   try {
+    // Get recent action history from state manager
+    const recentActionSummary = npcStateManager.getActionSummary(
+      npc_properties.name.toLowerCase()
+    );
+
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
           role: "system",
           content: `
-      You are an NPC in a game world named ${npc_properties.name}. 
+      You are an NPC in a game world named ${
+        npc_properties.name
+      }. You are simulating life in a town.
+      
+      CURRENT STATE:
+      - Current location: ${npc_properties.location || "UNKNOWN"}
+      - Current action: ${npc_properties.currentAction || "NONE"}
+      - Last action: ${npc_properties.lastAction || "NONE"}
+      - Recent actions: ${recentActionSummary}
+      - Time of day: ${getTimeOfDay()}
       
       STRICT RESPONSE FORMAT:
       You must respond with exactly: ActionName [reasoning]
-      - ActionName should be a selected as exact action from the available actions.
+      - ActionName should be selected from the available actions.
       - [reasoning] must be in square brackets
-    
+      - Be creative and varied in your actions.
+      - Avoid repeating your most recent action.
+      - Consider the time of day and your location when deciding.
+      - Consider interacting with NPCs at relevant locations.
       
       Example valid responses:
-      WANDER [looking for adventure]
-      CHILLMART [need to buy snacks]
-      IDLE [enjoying the view]
+      WANDER [feeling restless and want to explore new areas]
+      GO TO CHILLMART [hungry and need to buy some snacks]
+      IDLE [enjoying the nice weather and taking a break]
+      GO TO LIBRARY [want to read about local history]
       `,
         },
         {
@@ -133,16 +152,17 @@ export async function getNpcAction(
       - Current Location: ${npc_properties.location}
       - Current Action: ${npc_properties.currentAction}
       - Last Action: ${npc_properties.lastAction}
-      - Recent Memories: ${npc_properties.memories}
+      - Recent Memories: ${npc_properties.memories?.slice(-500)}
       
       Available Actions: ${(npc_properties.availableActions ?? []).join(", ")}
       
+      Choose your next action carefully. If you've been going to the same place repeatedly, consider doing something else.
       What single action will you take? Remember to use exact format: ActionName [reasoning]
       `,
         },
       ],
       model: model_name,
-      temperature: 0.3,
+      temperature: 0.7, // Higher temperature for more varied responses
     });
 
     const response = chatCompletion.choices[0]?.message?.content?.trim() || "";
@@ -160,6 +180,7 @@ export async function getNpcAction(
     npc_properties.currentAction = action.trim();
 
     console.log("NPC Decision:", {
+      name: npc_properties.name,
       action: action.trim(),
       reasoning,
       currentAction: npc_properties.currentAction,
@@ -177,6 +198,15 @@ export async function getNpcAction(
     console.error("getNpcAction Error:", error);
     return "ran out of acorns [error occurred]";
   }
+}
+
+// Helper function for time of day
+function getTimeOfDay(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return "Morning";
+  if (hour >= 12 && hour < 17) return "Afternoon";
+  if (hour >= 17 && hour < 21) return "Evening";
+  return "Night";
 }
 
 export async function update_Groot_memory(
