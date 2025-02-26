@@ -1,6 +1,6 @@
 "use server";
 
-import { groot_brain_log_prompt, groot_log_prompt } from "@/characterPrompts";
+import { groot_log_prompt } from "@/characterPrompts";
 import { prisma } from "@/lib/db";
 import Groq from "groq-sdk";
 import npcStateManager from "../utils/npcStateManager";

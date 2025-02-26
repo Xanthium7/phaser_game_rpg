@@ -852,9 +852,46 @@ export default class Preloader extends Scene {
         break;
     }
 
-    // this.dialogueBox.show(
-    //   `You interacted at position X:${targetPosition.x}, Y:${targetPosition.y}`
-    // );
+    // Check for interactions with all NPCs
+    const npcIds = Object.keys(this.npcProperties);
+
+    for (const npcId of npcIds) {
+      if (!this.gridEngine.hasCharacter(npcId)) continue;
+
+      const npcPosition = this.gridEngine.getPosition(npcId);
+      const distance = Phaser.Math.Distance.Between(
+        targetPosition.x,
+        targetPosition.y,
+        npcPosition.x,
+        npcPosition.y
+      );
+
+      if (distance <= 1) {
+        // Pause the NPC decision timer
+        this.npcDecisionInterval.paused = true;
+
+        const npcName = this.npcProperties[npcId].name;
+        console.log(`Talking to ${npcName}...`);
+        const userInput = window.prompt(`Talk to ${npcName}: `);
+
+        if (userInput) {
+          Ai_response(npcId, userInput, this.name).then((response) => {
+            console.log(`${npcName} Response:`, response);
+            this.dialogueBox.show(response);
+
+            if (response.includes("[") && response.includes("]")) {
+              this.decideNpcAction(npcId);
+            }
+          });
+        }
+
+        // Resume the decision timer
+        this.npcDecisionInterval.paused = false;
+        return; // Exit after handling one NPC interaction
+      }
+    }
+
+    // Handle location-based interactions only if no NPC interaction happened
     if (
       (targetPosition.x === 82 && targetPosition.y === 89) ||
       (targetPosition.x === 81 && targetPosition.y === 89) ||
