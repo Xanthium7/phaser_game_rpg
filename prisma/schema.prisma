@@ -14,7 +14,15 @@ datasource db {
 }
 
 model History {
-  id        Int    @id @default(autoincrement())
-  username  String
-  log_groot String
+  id         Int    @id @default(autoincrement())
+  username   String
+  log_groot  String @default("")
+  librarian  String @default("")
+  blacksmith String @default("")
+  lisa       String @default("")
+  anne       String @default("")
+  elsa       String @default("")
+  tom        String @default("")
+  brick      String @default("")
+  col        String @default("")
 }
