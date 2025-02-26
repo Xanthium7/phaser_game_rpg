@@ -257,7 +257,7 @@ export default class Preloader extends Scene {
       ],
     });
 
-    // Walk aimation for NPC
+    // Walk aimation for NPC LOG
     this.anims.create({
       key: "npc_walk_down",
       frames: this.anims.generateFrameNumbers("npc_log", { start: 0, end: 3 }),
@@ -296,7 +296,7 @@ export default class Preloader extends Scene {
     });
 
     this.addNPCLog();
-    this.addlibrarian(); // Add new NPC
+    this.addlibrarian();
     this.addBlacksmith();
     this.addLisa();
     this.addAnne();
@@ -639,7 +639,7 @@ export default class Preloader extends Scene {
   // Initialize the agentic system for the NPC
   private initializeNpcAgent() {
     this.npcDecisionInterval = this.time.addEvent({
-      delay: 120000,
+      delay: 60000,
       callback: this.decideNpcAction,
       callbackScope: this,
       loop: true,
@@ -1269,7 +1269,7 @@ export default class Preloader extends Scene {
     const delay = Phaser.Math.Between(5000, 15000);
 
     const timer = this.time.delayedCall(delay, () => {
-      // 50% chance to wander at destination, 50% to make a new decision
+      //**  50% chance to wander at destination, 50% to make a new decision
       if (Math.random() > 0.5) {
         this.gridEngine.moveRandomly(npcId, 1000);
         console.log(`${npcId} is now wandering at the destination`);
