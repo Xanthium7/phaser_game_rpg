@@ -933,25 +933,24 @@ export default class Preloader extends Scene {
               this.dialogueBox.show(response);
 
               if (response.includes("[") && response.includes("]")) {
+                // NPC wants to perform a specific action from the response
                 this.decideNpcAction(currentInteractingNpcId);
               } else {
-                // If no action is specified in the response, reset NPC state after a delay
-                this.time.delayedCall(5000, () => {
-                  // One more check to make sure NPC faces player during response time
+                // NPC will resume normal behavior after conversation
+                this.time.delayedCall(3000, () => {
+                  // Make sure we're still facing player while dialogue is showing
                   this.makeNPCFacePlayer(
                     currentInteractingNpcId,
                     currentPlayerId
                   );
 
-                  this.time.delayedCall(3000, () => {
+                  // After dialogue is likely read, resume normal behavior
+                  this.time.delayedCall(5000, () => {
+                    // Reset NPC state
                     npcStateManager.setState(currentInteractingNpcId, "idle");
-                    // Resume random movement after conversation with 50% chance
-                    if (Math.random() > 0.5) {
-                      this.gridEngine.moveRandomly(
-                        currentInteractingNpcId,
-                        1000
-                      );
-                    }
+
+                    // Schedule the next action
+                    this.scheduleNpcResumeBehavior(currentInteractingNpcId);
                   });
                 });
               }
@@ -965,11 +964,13 @@ export default class Preloader extends Scene {
 
               // Reset NPC state on error
               npcStateManager.setState(currentInteractingNpcId, "idle");
+              this.scheduleNpcResumeBehavior(currentInteractingNpcId);
             });
         } else {
           // If user canceled the prompt
           this.hideLoadingBubble(npcId);
           npcStateManager.setState(npcId, "idle");
+          this.scheduleNpcResumeBehavior(npcId);
         }
 
         // Resume the decision timer
@@ -1522,7 +1523,7 @@ export default class Preloader extends Scene {
     if (charId === this.socket.id) return;
     if (!this.npcProperties[charId]) return;
 
-    console.log(`NPC ${charId} stopped moving`);
+    // console.log(`NPC ${charId} stopped moving`);
 
     // Update NPC location and memory
     const location = this.getNpcLocation(charId);
@@ -1550,23 +1551,12 @@ export default class Preloader extends Scene {
       this.npcFollowUpActions.get(npcId)?.remove();
     }
 
-    // Random delay between 5-15 seconds
-    const delay = Phaser.Math.Between(5000, 15000);
+    // Random delay between 3-10 seconds (shortened from previous 5-15)
+    const delay = Phaser.Math.Between(3000, 10000);
 
     const timer = this.time.delayedCall(delay, () => {
-      //**  50% chance to wander at destination, 50% to make a new decision
-      if (Math.random() > 0.5) {
-        this.gridEngine.moveRandomly(npcId, 1000);
-        console.log(`${npcId} is now wandering at the destination`);
-
-        // Schedule next decision after wandering
-        const nextDecisionDelay = Phaser.Math.Between(30000, 60000);
-        this.time.delayedCall(nextDecisionDelay, () => {
-          this.decideNpcAction(npcId);
-        });
-      } else {
-        this.decideNpcAction(npcId);
-      }
+      // Use the shared behavior resumption logic
+      this.scheduleNpcResumeBehavior(npcId);
     });
 
     this.npcFollowUpActions.set(npcId, timer);
@@ -1647,6 +1637,36 @@ export default class Preloader extends Scene {
       this.time.delayedCall(2000, () => {
         this.decideNpcAction(npc2Id);
       });
+    });
+  }
+
+  // New method to handle NPC behavior resumption after conversations
+  private scheduleNpcResumeBehavior(npcId: string): void {
+    // Short delay before resuming behavior
+    const delay = Phaser.Math.Between(1000, 2000);
+
+    this.time.delayedCall(delay, () => {
+      // Skip if NPC no longer exists or is already in another state
+      if (!this.gridEngine.hasCharacter(npcId)) return;
+      if (npcStateManager.getState(npcId) !== "idle") return;
+
+      console.log(`${npcId} resuming normal behavior after conversation`);
+
+      // 70% chance to wander, 30% chance to make a new decision
+      if (Math.random() < 0.7) {
+        // Resume wandering behavior
+        this.gridEngine.moveRandomly(npcId, 1000);
+        console.log(`${npcId} is now wandering after conversation`);
+
+        // Schedule a full decision after wandering for a while
+        const nextDecisionDelay = Phaser.Math.Between(15000, 30000);
+        this.time.delayedCall(nextDecisionDelay, () => {
+          this.decideNpcAction(npcId);
+        });
+      } else {
+        // Make a full new decision about what to do next
+        this.decideNpcAction(npcId);
+      }
     });
   }
 }
