@@ -190,6 +190,14 @@ export default class Preloader extends Scene {
   private npcPositions: Record<string, { x: number; y: number }> = {};
   private npcInteractionCheckTimer: Phaser.Time.TimerEvent | null = null;
 
+  // Add new properties for loading indicators
+  private loadingBubbles: {
+    [npcId: string]: {
+      text: Phaser.GameObjects.Text;
+      background: Phaser.GameObjects.Graphics;
+    };
+  } = {};
+
   constructor() {
     super("Preloader");
   }
@@ -895,19 +903,73 @@ export default class Preloader extends Scene {
         // Pause the NPC decision timer
         this.npcDecisionInterval.paused = true;
 
+        // Stop the NPC's movement
+        this.gridEngine.stopMovement(npcId);
+        npcStateManager.setState(npcId, "interacting");
+
+        // Make NPC face the player - ensure this works
+        this.makeNPCFacePlayer(npcId, currentPlayerId);
+
         const npcName = this.npcProperties[npcId].name;
         console.log(`Talking to ${npcName}...`);
         const userInput = window.prompt(`Talk to ${npcName}: `);
 
         if (userInput) {
-          Ai_response(npcId, userInput, this.name).then((response) => {
-            console.log(`${npcName} Response:`, response);
-            this.dialogueBox.show(response);
+          // Show loading indicator
+          this.showLoadingBubble(npcId);
 
-            if (response.includes("[") && response.includes("]")) {
-              this.decideNpcAction(npcId);
-            }
-          });
+          // Store a reference to this NPC for later use
+          const currentInteractingNpcId = npcId;
+
+          Ai_response(npcId, userInput, this.name)
+            .then((response) => {
+              console.log(`${npcName} Response:`, response);
+              // Hide loading indicator
+              this.hideLoadingBubble(currentInteractingNpcId);
+
+              // Make sure NPC is still facing the player when responding
+              this.makeNPCFacePlayer(currentInteractingNpcId, currentPlayerId);
+
+              this.dialogueBox.show(response);
+
+              if (response.includes("[") && response.includes("]")) {
+                this.decideNpcAction(currentInteractingNpcId);
+              } else {
+                // If no action is specified in the response, reset NPC state after a delay
+                this.time.delayedCall(5000, () => {
+                  // One more check to make sure NPC faces player during response time
+                  this.makeNPCFacePlayer(
+                    currentInteractingNpcId,
+                    currentPlayerId
+                  );
+
+                  this.time.delayedCall(3000, () => {
+                    npcStateManager.setState(currentInteractingNpcId, "idle");
+                    // Resume random movement after conversation with 50% chance
+                    if (Math.random() > 0.5) {
+                      this.gridEngine.moveRandomly(
+                        currentInteractingNpcId,
+                        1000
+                      );
+                    }
+                  });
+                });
+              }
+            })
+            .catch((error) => {
+              console.error(`Error with ${npcName} response:`, error);
+              this.hideLoadingBubble(currentInteractingNpcId);
+              this.dialogueBox.show(
+                `${npcName} is unable to respond right now.`
+              );
+
+              // Reset NPC state on error
+              npcStateManager.setState(currentInteractingNpcId, "idle");
+            });
+        } else {
+          // If user canceled the prompt
+          this.hideLoadingBubble(npcId);
+          npcStateManager.setState(npcId, "idle");
         }
 
         // Resume the decision timer
@@ -1010,6 +1072,167 @@ export default class Preloader extends Scene {
     //   // Resume the decision timer if prompt is canceled
     //   this.npcDecisionInterval.paused = false;
     // }
+  }
+
+  // New method to make NPCs face the player
+  private makeNPCFacePlayer(npcId: string, playerId: string): void {
+    if (
+      !this.gridEngine.hasCharacter(npcId) ||
+      !this.gridEngine.hasCharacter(playerId)
+    ) {
+      return;
+    }
+
+    const npcPosition = this.gridEngine.getPosition(npcId);
+    const playerPosition = this.gridEngine.getPosition(playerId);
+
+    // Calculate differences to determine best direction
+    const dx = playerPosition.x - npcPosition.x;
+    const dy = playerPosition.y - npcPosition.y;
+
+    // Force the NPC to stop any current movement
+    this.gridEngine.stopMovement(npcId);
+
+    // Choose the direction with the largest component (horizontal or vertical)
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Horizontal direction is more significant
+      this.gridEngine.turnTowards(
+        npcId,
+        dx > 0 ? Direction.RIGHT : Direction.LEFT
+      );
+    } else {
+      // Vertical direction is more significant
+      this.gridEngine.turnTowards(
+        npcId,
+        dy > 0 ? Direction.DOWN : Direction.UP
+      );
+    }
+
+    // Update the sprite frame to reflect the new direction
+    const direction = this.gridEngine.getFacingDirection(npcId);
+    const sprite = this.gridEngine.getSprite(npcId);
+
+    // Only update frame if sprite exists
+    if (!sprite) return;
+
+    // Force the sprite to update its frame based on the NPC type
+    if (npcId === "npc_log") {
+      switch (direction) {
+        case "up":
+          sprite.setFrame(6);
+          break;
+        case "down":
+          sprite.setFrame(0);
+          break;
+        case "left":
+          sprite.setFrame(13);
+          break;
+        case "right":
+          sprite.setFrame(8);
+          break;
+      }
+    } else {
+      // For other NPCs - adjust frame based on direction
+      switch (direction) {
+        case "up":
+          sprite.setFrame(0);
+          break;
+        case "left":
+          sprite.setFrame(9);
+          break;
+        case "down":
+          sprite.setFrame(18);
+          break;
+        case "right":
+          sprite.setFrame(27);
+          break;
+      }
+    }
+  }
+
+  // New method to show loading bubble with improved structure and better positioning
+  private showLoadingBubble(npcId: string): void {
+    // Clean up any existing bubble first
+    this.hideLoadingBubble(npcId);
+
+    const sprite = this.gridEngine.getSprite(npcId);
+    if (!sprite) return;
+
+    // Calculate position to be directly above the NPC's head
+    // Use sprite.displayHeight to account for scaling
+    const bubbleX = sprite.x;
+    const bubbleY = sprite.y - sprite.displayHeight - 10;
+
+    // Create background first with better visibility
+    const background = this.add.graphics();
+    background.fillStyle(0xffffff, 0.9); // More opaque
+    background.lineStyle(2, 0x000000, 0.8); // Add border
+    background.fillRoundedRect(bubbleX - 25, bubbleY - 12, 50, 24, 8);
+    background.strokeRoundedRect(bubbleX - 25, bubbleY - 12, 50, 24, 8);
+    background.setDepth(999);
+
+    // Create text over background
+    const loadingText = this.add
+      .text(bubbleX, bubbleY, "...", {
+        fontSize: "16px",
+        fontStyle: "bold",
+        color: "#000000",
+      })
+      .setOrigin(0.5)
+      .setDepth(1000);
+
+    // Store both elements for later cleanup
+    this.loadingBubbles[npcId] = {
+      text: loadingText,
+      background: background,
+    };
+
+    // Create animation for the dots
+    let dots = 0;
+    const animTimer = this.time.addEvent({
+      delay: 300,
+      callback: () => {
+        if (!this.loadingBubbles[npcId]) return;
+
+        dots = (dots + 1) % 4;
+        const text = ".".repeat(dots || 3); // Show at least 3 dots
+        loadingText.setText(text);
+      },
+      callbackScope: this,
+      loop: true,
+      repeat: -1,
+    });
+
+    // Store the timer ID on the text object for cleanup
+    loadingText.setData("animTimer", animTimer);
+
+    // Add a timeout to automatically hide if the response takes too long
+    this.time.delayedCall(20000, () => {
+      this.hideLoadingBubble(npcId);
+    });
+  }
+
+  // New method to hide loading bubble that properly cleans up all elements
+  private hideLoadingBubble(npcId: string): void {
+    if (this.loadingBubbles[npcId]) {
+      const bubble = this.loadingBubbles[npcId];
+
+      // Stop the animation timer
+      const animTimer = bubble.text.getData("animTimer");
+      if (animTimer) {
+        animTimer.remove();
+      }
+
+      // Destroy the text
+      bubble.text.destroy();
+
+      // Destroy the background
+      bubble.background.clear();
+      bubble.background.destroy();
+
+      // Remove from our tracking object
+      delete this.loadingBubbles[npcId];
+    }
   }
 
   private showJukeBoxModal() {
