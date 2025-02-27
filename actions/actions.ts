@@ -1,12 +1,48 @@
 "use server";
 
-import { groot_log_prompt } from "@/characterPrompts";
+import {
+  groot_log_prompt,
+  librarian_prompt,
+  blacksmith_prompt,
+  lisa_prompt,
+  anne_prompt,
+  elsa_prompt,
+  tom_prompt,
+  brick_prompt,
+  col_prompt,
+} from "@/characterPrompts";
 import { prisma } from "@/lib/db";
 import Groq from "groq-sdk";
 import npcStateManager from "../utils/npcStateManager";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const model_name = "qwen-2.5-32b";
+
+// Map of NPC IDs to their system prompts
+const NPC_PROMPTS: Record<string, string> = {
+  npc_log: groot_log_prompt,
+  librarian: librarian_prompt,
+  blacksmith: blacksmith_prompt,
+  lisa: lisa_prompt,
+  anne: anne_prompt,
+  elsa: elsa_prompt,
+  tom: tom_prompt,
+  brick: brick_prompt,
+  col: col_prompt,
+};
+
+// Map of NPC IDs to their names
+const NPC_NAMES: Record<string, string> = {
+  npc_log: "Groot",
+  librarian: "Amelia",
+  blacksmith: "Ron",
+  lisa: "Lisa",
+  anne: "Anne",
+  elsa: "Elsa",
+  tom: "Tom",
+  brick: "Brick",
+  col: "Col",
+};
 
 export interface NPCProperties {
   name: string;
@@ -32,14 +68,20 @@ export async function Ai_response(
   prompt: string,
   username: string
 ): Promise<string> {
-  const memory = get_npc_memeory(npcId, username);
   try {
+    // Get the correct prompt for this NPC
+    const npcPrompt = NPC_PROMPTS[npcId] || groot_log_prompt;
+    const npcName = NPC_NAMES[npcId] || "NPC";
+
+    // Get memory for this specific NPC
+    const memory = await get_npc_memory(npcId, username);
+
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
           role: "system",
           content: `
-        ${groot_log_prompt}
+        ${npcPrompt}
 
         CONVERSATION HISTORY:
         ${memory}
@@ -75,30 +117,50 @@ export async function Ai_response(
     });
 
     const response = chatCompletion.choices[0]?.message?.content?.trim() || "";
-    const memoryEntry = `\n${username}: ${prompt}\nGroot: ${response}\n`;
-    await update_Groot_memory(memoryEntry, username);
+    const memoryEntry = `\n${username}: ${prompt}\n${npcName}: ${response}\n`;
+    await update_npc_memory(npcId, memoryEntry, username);
     return response;
   } catch (error) {
-    console.error("getNpcAction Error:", error);
-    return " Groot ran out of Acrons(tokens) so.. yea..  ";
+    console.error(`AI Response Error for ${npcId}:`, error);
+    return `${NPC_NAMES[npcId] || "I"} seem to be lost in thought right now...`;
   }
 }
 
+// Add a new function to get NPC-specific memory
+export async function get_npc_memory(
+  npcId: string,
+  username: string
+): Promise<string> {
+  try {
+    const memory = await prisma.history.findFirst({
+      where: {
+        username: username,
+      },
+    });
+
+    if (!memory) return "";
+
+    // For Groot, use legacy field for backward compatibility
+    if (npcId === "npc_log") {
+      return memory.log_groot?.slice(-2000) || "";
+    }
+
+    // For other NPCs
+    return (
+      ((memory as History)[npcId] as string | undefined)?.slice(-2000) || ""
+    );
+  } catch (error) {
+    console.error(`Error getting memory for ${npcId}:`, error);
+    return "";
+  }
+}
+
+// Keep for backward compatibility
 export async function get_npc_memeory(
   npcId: string,
   username: string
 ): Promise<string> {
-  const memory = await prisma.history.findMany({
-    where: {
-      username: username,
-    },
-    select: {
-      log_groot: true,
-    },
-    take: 1,
-  });
-  const groot_memory = memory[0]?.log_groot?.slice(-2000);
-  return groot_memory;
+  return get_npc_memory(npcId, username);
 }
 
 export async function getNpcAction(
@@ -152,7 +214,7 @@ export async function getNpcAction(
       - Current Location: ${npc_properties.location}
       - Current Action: ${npc_properties.currentAction}
       - Last Action: ${npc_properties.lastAction}
-      - Recent Memories: ${npc_properties.memories?.slice(-500)}
+      - Recent Memories: ${npc_properties.memories?.slice(-2000)}
       
       Available Actions: ${(npc_properties.availableActions ?? []).join(", ")}
       
@@ -209,28 +271,75 @@ function getTimeOfDay(): string {
   return "Night";
 }
 
+// Add function to update memory for any NPC
+// Define a type for the History model
+type History = {
+  id: number;
+  username: string;
+  log_groot: string;
+  librarian?: string;
+  blacksmith?: string;
+  lisa?: string;
+  anne?: string;
+  elsa?: string;
+  tom?: string;
+  brick?: string;
+  col?: string;
+  [key: string]: string | number | undefined; // Index signature for dynamic access
+};
+
+export async function update_npc_memory(
+  npcId: string,
+  new_memory: string,
+  username: string
+) {
+  try {
+    const existingHistory = await prisma.history.findFirst({
+      where: {
+        username: username,
+      },
+    });
+
+    if (existingHistory) {
+      const updateData: Record<string, string> = {};
+
+      // For Groot, use the legacy field name
+      if (npcId === "npc_log") {
+        updateData.log_groot = (existingHistory.log_groot || "") + new_memory;
+      } else {
+        // Use type assertion to safely access dynamic properties
+        const existingContent = (existingHistory as History)[npcId] as
+          | string
+          | undefined;
+        updateData[npcId] = (existingContent || "") + new_memory;
+      }
+
+      await prisma.history.update({
+        where: { id: existingHistory.id },
+        data: updateData,
+      });
+    } else {
+      const createData: any = { username: username };
+
+      // For Groot, use the legacy field name
+      if (npcId === "npc_log") {
+        createData.log_groot = new_memory;
+      } else {
+        createData[npcId] = new_memory;
+      }
+
+      await prisma.history.create({
+        data: createData,
+      });
+    }
+  } catch (error) {
+    console.error(`Error updating memory for ${npcId}:`, error);
+  }
+}
+
 export async function update_Groot_memory(
   new_memory: string,
   username: string
 ) {
-  const existingHistory = await prisma.history.findFirst({
-    where: {
-      username: username,
-    },
-  });
-
-  if (existingHistory) {
-    const updatedLog = existingHistory.log_groot + new_memory;
-    await prisma.history.update({
-      where: { id: existingHistory.id },
-      data: { log_groot: updatedLog },
-    });
-  } else {
-    await prisma.history.create({
-      data: {
-        username: username,
-        log_groot: new_memory,
-      },
-    });
-  }
+  return update_npc_memory("npc_log", new_memory, username);
 }

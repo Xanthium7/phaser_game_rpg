@@ -8,7 +8,17 @@ import {
   getNpcAction,
   update_Groot_memory,
 } from "@/actions/actions";
-import { groot_log_prompt } from "@/characterPrompts";
+import {
+  groot_log_prompt,
+  librarian_prompt,
+  blacksmith_prompt,
+  lisa_prompt,
+  anne_prompt,
+  elsa_prompt,
+  tom_prompt,
+  brick_prompt,
+  col_prompt,
+} from "@/characterPrompts";
 import npcStateManager, { NPCAction } from "../utils/npcStateManager";
 import npcInteractionManager from "../utils/npcInteractions";
 
@@ -60,7 +70,7 @@ export default class Preloader extends Scene {
   } = {
     npc_log: {
       name: "Groot",
-      personality: "calm, curious, and a natural leader",
+      personality: "chaotic, sarcastic, and deeply caring",
       systemPrompt: groot_log_prompt,
       memories: "",
       currentAction: "NONE",
@@ -78,83 +88,100 @@ export default class Preloader extends Scene {
     },
     librarian: {
       name: "Amelia",
-      personality: "clam and relaxed",
-      systemPrompt: "You are a librarian with a friendly attitude.",
+      personality: "scholarly, calm, and helpful",
+      systemPrompt: librarian_prompt,
       memories: "",
       location: "",
       currentAction: "NONE",
       lastAction: "NONE",
-      availableActions: ["talk", "ask_question", "explore", "leave"],
+      availableActions: ["GO TO LIBRARY", "WANDER", "IDLE", "GO TO CHILLMART"],
     },
     blacksmith: {
       name: "Ron",
-      personality: "hardy and skilled craftsman",
-      systemPrompt: "You are a skilled blacksmith who takes pride in your work",
+      personality: "hardy, strong, and straightforward",
+      systemPrompt: blacksmith_prompt,
       memories: "",
       location: "",
       currentAction: "NONE",
       lastAction: "NONE",
-      availableActions: ["talk", "craft", "explore", "rest"],
+      availableActions: ["GO TO DROOPYVILLE", "WANDER", "IDLE"],
     },
     lisa: {
       name: "Lisa",
-      personality: "cheerful townsfolk",
-      systemPrompt: "You are a friendly resident of Droopyville",
+      personality: "cheerful, sociable, and optimistic",
+      systemPrompt: lisa_prompt,
       memories: "",
       location: "",
       currentAction: "NONE",
       lastAction: "NONE",
-      availableActions: ["talk", "walk", "shop", "rest"],
+      availableActions: [
+        "GO TO DROOPYVILLE",
+        "WANDER",
+        "IDLE",
+        "GO TO CHILLMART",
+      ],
     },
     anne: {
       name: "Anne",
-      personality: "busy shopkeeper",
-      systemPrompt: "You run the ChillMart with dedication",
+      personality: "efficient, business-minded, and organized",
+      systemPrompt: anne_prompt,
       memories: "",
       location: "",
       currentAction: "NONE",
       lastAction: "NONE",
-      availableActions: ["talk", "work", "organize", "rest"],
+      availableActions: ["GO TO CHILLMART", "WANDER", "IDLE"],
     },
     elsa: {
       name: "Elsa",
-      personality: "mysterious shopper",
-      systemPrompt: "You frequently visit ChillMart looking for rare items",
+      personality: "enigmatic, reserved, and knowledgeable",
+      systemPrompt: elsa_prompt,
       memories: "",
       location: "",
       currentAction: "NONE",
       lastAction: "NONE",
-      availableActions: ["talk", "shop", "browse", "leave"],
+      availableActions: ["GO TO CHILLMART", "GO TO LIBRARY", "WANDER", "IDLE"],
     },
     tom: {
       name: "Tom",
-      personality: "adventurous wanderer",
-      systemPrompt: "You travel from town to town seeking adventures",
+      personality: "free-spirited, adventurous, and resourceful",
+      systemPrompt: tom_prompt,
       memories: "",
       location: "",
       currentAction: "NONE",
       lastAction: "NONE",
-      availableActions: ["talk", "travel", "rest", "explore"],
+      availableActions: [
+        "GO TO CHILLMART",
+        "GO TO LIBRARY",
+        "GO TO DROOPYVILLE",
+        "GO TO PARK",
+        "WANDER",
+        "IDLE",
+      ],
     },
     brick: {
       name: "Brick",
-      personality: "tough but fair warrior",
-      systemPrompt: "You are a skilled warrior protecting the town",
+      personality: "strong-willed, protective, and disciplined",
+      systemPrompt: brick_prompt,
       memories: "",
       location: "",
       currentAction: "NONE",
       lastAction: "NONE",
-      availableActions: ["talk", "patrol", "train", "rest"],
+      availableActions: [
+        "GO TO CHILLMART",
+        "WANDER",
+        "IDLE",
+        "GO TO DROOPYVILLE",
+      ],
     },
     col: {
       name: "Col",
-      personality: "disciplined warrior",
-      systemPrompt: "You are a warrior maintaining order in the town",
+      personality: "strict, vigilant, and reserved",
+      systemPrompt: col_prompt,
       memories: "",
       location: "",
       currentAction: "NONE",
       lastAction: "NONE",
-      availableActions: ["talk", "guard", "train", "patrol"],
+      availableActions: ["GO TO DROOPYVILLE", "WANDER", "IDLE"],
     },
   };
 
@@ -779,8 +806,6 @@ export default class Preloader extends Scene {
         }
         break;
 
-      // ... other action cases ...
-
       default:
         console.log(`Unknown action: ${actionType}`);
         this.gridEngine.moveRandomly(npcId, 1000);
@@ -962,29 +987,29 @@ export default class Preloader extends Scene {
       npcGridPosition.y
     );
 
-    if (distance <= 1) {
-      // Pause the NPC decision timer
-      this.npcDecisionInterval.paused = true;
+    // if (distance <= 1) {
+    //   // Pause the NPC decision timer
+    //   this.npcDecisionInterval.paused = true;
 
-      console.log("Talking to Groot...");
-      const userInput = window.prompt("Talk to Groot: ");
-      if (userInput) {
-        Ai_response("npc_log", userInput, this.name).then((response) => {
-          console.log("Groot Response:", response);
-          this.dialogueBox.show(response);
+    //   console.log("Talking to Groot...");
+    //   const userInput = window.prompt("Talk to Groot: ");
+    //   if (userInput) {
+    //     Ai_response("npc_log", userInput, this.name).then((response) => {
+    //       console.log("Groot Response:", response);
+    //       this.dialogueBox.show(response);
 
-          if (response.includes("[") && response.includes("]")) {
-            this.decideNpcAction();
-          }
-        });
-      }
+    //       if (response.includes("[") && response.includes("]")) {
+    //         this.decideNpcAction();
+    //       }
+    //     });
+    //   }
 
-      // Resume the decision timer
-      this.npcDecisionInterval.paused = false;
-    } else {
-      // Resume the decision timer if prompt is canceled
-      this.npcDecisionInterval.paused = false;
-    }
+    //   // Resume the decision timer
+    //   this.npcDecisionInterval.paused = false;
+    // } else {
+    //   // Resume the decision timer if prompt is canceled
+    //   this.npcDecisionInterval.paused = false;
+    // }
   }
 
   private showJukeBoxModal() {
