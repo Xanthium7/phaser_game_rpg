@@ -394,9 +394,7 @@ export default class Preloader extends Scene {
     this.gridEngine.movementStopped().subscribe(({ charId }) => {
       if (charId === this.socket.id) {
         const newPosition = this.gridEngine.getPosition(charId);
-        console.log(
-          `Player moved to position: x=${newPosition.x}, y=${newPosition.y}`
-        );
+
         this.socket.emit("playerMovement", {
           id: charId,
           x: newPosition.x,
@@ -695,21 +693,28 @@ export default class Preloader extends Scene {
     return "UNKNOWN";
   }
 
-  // Function to decide NPC's next action
-  private async decideNpcAction(npcId: string = "npc_log"): Promise<void> {
+  // Function to decide NPC's next action - updated with optional responseAction parameter
+  private async decideNpcAction(
+    npcId: string = "npc_log",
+    responseAction?: string
+  ): Promise<void> {
     const npc = this.npcProperties[npcId];
     if (!npc) return;
 
     // Skip if NPC is already in an interaction or moving
     const currentState = npcStateManager.getState(npcId);
-    if (currentState === "interacting" || currentState === "moving") {
+    if (currentState === "moving") {
       console.log(
         `Skipping decision for ${npcId} - current state: ${currentState}`
       );
       return;
     }
 
-    console.log(`Deciding action for ${npcId} (${npc.name})`);
+    console.log(
+      `Deciding action for ${npcId} (${npc.name})${
+        responseAction ? " based on response" : ""
+      }`
+    );
 
     // Update NPC location
     const location = this.getNpcLocation(npcId);
@@ -725,22 +730,33 @@ export default class Preloader extends Scene {
     const previousAction = npc.currentAction || "NONE";
     npc.lastAction = previousAction;
 
-    // Get action from AI
-    const actionResponse = await getNpcAction(npc, this.name);
-    let [actionType, reason] = actionResponse.split(" [");
-    const reasonText = reason ? reason.slice(0, -1) : "";
+    let actionType: string;
+    let reasonText: string;
+
+    if (responseAction) {
+      // Use the action extracted from the response
+      actionType = responseAction;
+      reasonText = "As requested by player";
+      console.log(`Using action from response: ${actionType}`);
+    } else {
+      // Get action from AI as usual
+      const actionResponse = await getNpcAction(npc, this.name);
+      let [action, reason] = actionResponse.split(" [");
+      actionType = action.trim();
+      reasonText = reason ? reason.slice(0, -1) : "";
+    }
 
     // Update NPC state
-    npc.currentAction = actionType.trim();
+    npc.currentAction = actionType;
 
-    console.log(`NPC ${npcId} decided to ${actionType} because ${reasonText}`);
+    console.log(`NPC ${npcId} will ${actionType} because ${reasonText}`);
     console.log(
       `Previous action was: ${previousAction}, New action: ${actionType}`
     );
 
     // Create an action record
     const action: NPCAction = {
-      type: actionType.trim(),
+      type: actionType,
       reason: reasonText,
       startTime: Date.now(),
       completed: false,
@@ -751,7 +767,7 @@ export default class Preloader extends Scene {
     npcStateManager.setState(npcId, "moving");
 
     // Execute the action
-    await this.executeNpcAction(npcId, actionType.trim(), reasonText);
+    await this.executeNpcAction(npcId, actionType, reasonText);
   }
 
   private async executeNpcAction(
@@ -932,26 +948,24 @@ export default class Preloader extends Scene {
 
               this.dialogueBox.show(response);
 
-              if (response.includes("[") && response.includes("]")) {
-                // NPC wants to perform a specific action from the response
-                this.decideNpcAction(currentInteractingNpcId);
+              // Extract action command if present in the response
+              const actionMatch = response.match(
+                /\[(GO TO .+?|WANDER|IDLE|STAY IDLE)\]/i
+              );
+              if (actionMatch) {
+                // Extract the action without brackets
+                const extractedAction = actionMatch[1].trim();
+                console.log(
+                  `Extracted action from response: ${extractedAction}`
+                );
+
+                // Use the extracted action to guide NPC behavior directly
+                this.decideNpcAction(currentInteractingNpcId, extractedAction);
               } else {
-                // NPC will resume normal behavior after conversation
+                // No explicit action found in response
                 this.time.delayedCall(3000, () => {
-                  // Make sure we're still facing player while dialogue is showing
-                  this.makeNPCFacePlayer(
-                    currentInteractingNpcId,
-                    currentPlayerId
-                  );
-
-                  // After dialogue is likely read, resume normal behavior
-                  this.time.delayedCall(5000, () => {
-                    // Reset NPC state
-                    npcStateManager.setState(currentInteractingNpcId, "idle");
-
-                    // Schedule the next action
-                    this.scheduleNpcResumeBehavior(currentInteractingNpcId);
-                  });
+                  // ...existing code for non-action responses...
+                  this.scheduleNpcResumeBehavior(currentInteractingNpcId);
                 });
               }
             })
@@ -1049,30 +1063,6 @@ export default class Preloader extends Scene {
       npcGridPosition.x,
       npcGridPosition.y
     );
-
-    // if (distance <= 1) {
-    //   // Pause the NPC decision timer
-    //   this.npcDecisionInterval.paused = true;
-
-    //   console.log("Talking to Groot...");
-    //   const userInput = window.prompt("Talk to Groot: ");
-    //   if (userInput) {
-    //     Ai_response("npc_log", userInput, this.name).then((response) => {
-    //       console.log("Groot Response:", response);
-    //       this.dialogueBox.show(response);
-
-    //       if (response.includes("[") && response.includes("]")) {
-    //         this.decideNpcAction();
-    //       }
-    //     });
-    //   }
-
-    //   // Resume the decision timer
-    //   this.npcDecisionInterval.paused = false;
-    // } else {
-    //   // Resume the decision timer if prompt is canceled
-    //   this.npcDecisionInterval.paused = false;
-    // }
   }
 
   // New method to make NPCs face the player
