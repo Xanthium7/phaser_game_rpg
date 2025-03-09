@@ -824,6 +824,12 @@ export default class Preloader extends Scene {
         if (destination) {
           console.log(`${npcId} moves to ${placeName}: ${reasoning}`);
           this.gridEngine.moveTo(npcId, destination);
+          this.gridEngine.movementStopped().subscribe(({ charId }) => {
+            if (charId === npcId) {
+              this.gridEngine.moveRandomly(npcId, 4000);
+              console.log(`${npcId} starts wandering lightly at ${placeName}`);
+            }
+          });
         } else {
           console.error(`Unknown place: ${placeName}`);
           this.gridEngine.moveRandomly(npcId, 1000);
