@@ -412,7 +412,7 @@ export default class Preloader extends Scene {
 
     // Set up regular interaction checks
     this.npcInteractionCheckTimer = this.time.addEvent({
-      delay: 100,
+      delay: 2000,
       callback: this.checkForPossibleNPCInteractions,
       callbackScope: this,
       loop: true,
