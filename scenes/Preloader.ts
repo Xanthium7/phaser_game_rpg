@@ -7,6 +7,7 @@ import {
   get_npc_memeory,
   getNpcAction,
   update_Groot_memory,
+  update_npc_memory,
 } from "@/actions/actions";
 import {
   groot_log_prompt,
@@ -411,7 +412,7 @@ export default class Preloader extends Scene {
 
     // Set up regular interaction checks
     this.npcInteractionCheckTimer = this.time.addEvent({
-      delay: 30000,
+      delay: 100,
       callback: this.checkForPossibleNPCInteractions,
       callbackScope: this,
       loop: true,
@@ -630,7 +631,7 @@ export default class Preloader extends Scene {
     });
 
     // Create animations
-    const animationKeys = ["up", "down", "left", "right"];
+    const animationKeys = ["up", "left", "down", "right"];
     animationKeys.forEach((direction, index) => {
       this.anims.create({
         key: `${id}_walk_${direction}`,
@@ -775,13 +776,13 @@ export default class Preloader extends Scene {
     actionType: string,
     reasoning: string
   ): Promise<void> {
+    //* NEED TO UPDATE MEMORY FOR TOHER NPCS AS WELL
     // For Groot, update memory about the decision
-    if (npcId === "npc_log") {
-      await update_Groot_memory(
-        `I decided to ${actionType} because ${reasoning}`,
-        this.name
-      );
-    }
+    await update_npc_memory(
+      npcId,
+      `I decided to ${actionType} because ${reasoning}`,
+      this.name
+    );
 
     switch (actionType) {
       case "IDLE":
@@ -800,7 +801,7 @@ export default class Preloader extends Scene {
         console.log(`${npcId} wanders around: ${reasoning}`);
 
         // After wandering period, complete action
-        this.time.delayedCall(45000, () => {
+        this.time.delayedCall(20000, () => {
           npcStateManager.completeCurrentAction(npcId);
           this.scheduleFollowUpAction(npcId);
         });
@@ -824,12 +825,13 @@ export default class Preloader extends Scene {
         if (destination) {
           console.log(`${npcId} moves to ${placeName}: ${reasoning}`);
           this.gridEngine.moveTo(npcId, destination);
-          this.gridEngine.movementStopped().subscribe(({ charId }) => {
-            if (charId === npcId) {
-              this.gridEngine.moveRandomly(npcId, 4000);
-              console.log(`${npcId} starts wandering lightly at ${placeName}`);
-            }
-          });
+          // this.gridEngine.movementStopped().subscribe(({ charId }) => {
+          //   if (charId === npcId) {
+          //     this.gridEngine.moveRandomly(npcId, 5000);
+          //     console.log(`${npcId} starts wandering lightly at ${placeName}`);
+          //   }
+          // });
+          npcStateManager.setState(npcId, "idle");
         } else {
           console.error(`Unknown place: ${placeName}`);
           this.gridEngine.moveRandomly(npcId, 1000);
@@ -1499,7 +1501,7 @@ export default class Preloader extends Scene {
           pos2.y
         );
 
-        if (distance <= 2) {
+        if (distance <= 5) {
           // Close enough to interact
           this.initiateNPCInteraction(npc1Id, npc2Id);
           return; // Only start one interaction at a time
@@ -1509,19 +1511,16 @@ export default class Preloader extends Scene {
   }
 
   // Method to handle movement completion
-  private handleMovementStopped({
+  private async handleMovementStopped({
     charId,
   }: {
     charId: string;
     direction: string;
-  }): void {
+  }) {
     // Only handle NPCs, not players
     if (charId === this.socket.id) return;
     if (!this.npcProperties[charId]) return;
 
-    // console.log(`NPC ${charId} stopped moving`);
-
-    // Update NPC location and memory
     const location = this.getNpcLocation(charId);
     this.npcProperties[charId].location = location;
 
@@ -1531,9 +1530,7 @@ export default class Preloader extends Scene {
       npcStateManager.completeCurrentAction(charId);
 
       // Update memory for Groot
-      if (charId === "npc_log") {
-        update_Groot_memory(`I arrived at ${location}`, this.name);
-      }
+      await update_npc_memory(charId, `I arrived at ${location}`, this.name);
 
       // Schedule follow-up action
       this.scheduleFollowUpAction(charId);
@@ -1541,7 +1538,7 @@ export default class Preloader extends Scene {
   }
 
   // Schedule what to do after completing an action
-  private scheduleFollowUpAction(npcId: string): void {
+  private async scheduleFollowUpAction(npcId: string) {
     // Cancel any existing follow-up
     if (this.npcFollowUpActions.has(npcId)) {
       this.npcFollowUpActions.get(npcId)?.remove();
@@ -1558,8 +1555,8 @@ export default class Preloader extends Scene {
     this.npcFollowUpActions.set(npcId, timer);
   }
 
-  // Method to initiate interaction between NPCs
-  private initiateNPCInteraction(npc1Id: string, npc2Id: string): void {
+  //*  Method to initiate interaction between NPCs
+  private async initiateNPCInteraction(npc1Id: string, npc2Id: string) {
     const npc1 = this.npcProperties[npc1Id];
     const npc2 = this.npcProperties[npc2Id];
 
@@ -1594,14 +1591,20 @@ export default class Preloader extends Scene {
       npc1Name,
       npc2Name,
       "chat",
-      30000,
+      3000,
       description
     );
 
-    // Update memory for Groot if involved
+    // Update memory for any NPC involved
     if (npc1Id === "npc_log" || npc2Id === "npc_log") {
       const otherName = npc1Id === "npc_log" ? npc2Name : npc1Name;
-      update_Groot_memory(
+      await update_npc_memory(
+        npc1Id,
+        `I met with ${otherName} and we started ${description}`,
+        this.name
+      );
+      await update_npc_memory(
+        npc2Id,
         `I met with ${otherName} and we started ${description}`,
         this.name
       );
