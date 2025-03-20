@@ -841,8 +841,6 @@ export default class Preloader extends Scene {
         if (destination) {
           console.log(`${npcId} moves to ${placeName}: ${reasoning}`);
           this.gridEngine.moveTo(npcId, destination);
-
-          npcStateManager.setState(npcId, "idle");
         } else {
           console.error(`Unknown place: ${placeName}`);
           this.gridEngine.moveRandomly(npcId, 1000);
@@ -1583,6 +1581,9 @@ export default class Preloader extends Scene {
     const npc1Name = npc1.name;
     const npc2Name = npc2.name;
 
+    npcStateManager.setState(npc1Id, "interacting");
+    npcStateManager.setState(npc2Id, "interacting");
+
     console.log(`Starting interaction between ${npc1Name} and ${npc2Name}`);
 
     // Stop movement for both NPCs
@@ -1642,6 +1643,9 @@ export default class Preloader extends Scene {
         chatBubble.destroy();
       },
     });
+
+    npcStateManager.setState(npc1Id, "idle");
+    npcStateManager.setState(npc2Id, "idle");
 
     // After interaction ends, schedule new decisions
     this.time.delayedCall(interaction.duration + 100, () => {
