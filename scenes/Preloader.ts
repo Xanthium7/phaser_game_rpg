@@ -22,6 +22,7 @@ import {
 } from "@/characterPrompts";
 import npcStateManager, { NPCAction } from "../utils/npcStateManager";
 import npcInteractionManager from "../utils/npcInteractions";
+import { log } from "console";
 
 // to prevent chat controls from messing with game controls
 declare global {
@@ -53,6 +54,8 @@ export default class Preloader extends Scene {
   private npcIsInteracting: boolean = false;
   private npcDecisionInterval!: Phaser.Time.TimerEvent;
   private currentNpcAction: string | null = null; // Track current NPC action
+
+  private npcDecisionIntervals: Map<string, Phaser.Time.TimerEvent> = new Map();
 
   // Add new properties for better state management
   private npcStates: {
@@ -431,10 +434,10 @@ export default class Preloader extends Scene {
       .movementStopped()
       .subscribe(this.handleMovementStopped.bind(this));
 
-    // Start NPCs with initial delay
-    this.time.delayedCall(2000, () => {
-      this.decideNpcAction("npc_log");
-    });
+    // // Start NPCs with initial delay
+    // this.time.delayedCall(2000, () => {
+    //   this.decideNpcAction("npc_log");
+    // });
   }
 
   private lastDirection: string = "down";
@@ -672,11 +675,24 @@ export default class Preloader extends Scene {
 
   // Initialize the agentic system for the NPC
   private initializeNpcAgent() {
-    this.npcDecisionInterval = this.time.addEvent({
-      delay: 60000,
-      callback: this.decideNpcAction,
-      callbackScope: this,
-      loop: true,
+    // Create a decision timer for each NPC
+    Object.keys(this.npcProperties).forEach((npcId) => {
+      // Stagger the initial decisions to prevent all NPCs deciding at once
+      const initialDelay = Phaser.Math.Between(2000, 10000);
+
+      // Each NPC gets their own recurring decision timer
+      this.time.delayedCall(initialDelay, () => {
+        // Make initial decision
+        this.decideNpcAction(npcId);
+
+        // Set up recurring decisions
+        this.time.addEvent({
+          delay: 30000, // 1 minute between decisions
+          callback: () => this.decideNpcAction(npcId),
+          callbackScope: this,
+          loop: true,
+        });
+      });
     });
   }
 
@@ -825,12 +841,7 @@ export default class Preloader extends Scene {
         if (destination) {
           console.log(`${npcId} moves to ${placeName}: ${reasoning}`);
           this.gridEngine.moveTo(npcId, destination);
-          // this.gridEngine.movementStopped().subscribe(({ charId }) => {
-          //   if (charId === npcId) {
-          //     this.gridEngine.moveRandomly(npcId, 5000);
-          //     console.log(`${npcId} starts wandering lightly at ${placeName}`);
-          //   }
-          // });
+
           npcStateManager.setState(npcId, "idle");
         } else {
           console.error(`Unknown place: ${placeName}`);
@@ -924,12 +935,15 @@ export default class Preloader extends Scene {
       );
 
       if (distance <= 1) {
-        // Pause the NPC decision timer
-        this.npcDecisionInterval.paused = true;
-
         // Stop the NPC's movement
         this.gridEngine.stopMovement(npcId);
         npcStateManager.setState(npcId, "interacting");
+
+        // Pause the specific NPC's decision timer if it exists
+        const decisionTimer = this.npcDecisionIntervals?.get(npcId);
+        if (decisionTimer) {
+          decisionTimer.paused = true;
+        }
 
         // Make NPC face the player - ensure this works
         this.makeNPCFacePlayer(npcId, currentPlayerId);
@@ -996,7 +1010,11 @@ export default class Preloader extends Scene {
         }
 
         // Resume the decision timer
-        this.npcDecisionInterval.paused = false;
+        const resumeTimer = this.npcDecisionIntervals?.get(npcId);
+        if (resumeTimer) {
+          resumeTimer.paused = false;
+        }
+
         return; // Exit after handling one NPC interaction
       }
     }
@@ -1596,19 +1614,14 @@ export default class Preloader extends Scene {
     );
 
     // Update memory for any NPC involved
-    if (npc1Id === "npc_log" || npc2Id === "npc_log") {
-      const otherName = npc1Id === "npc_log" ? npc2Name : npc1Name;
-      await update_npc_memory(
-        npc1Id,
-        `I met with ${otherName} and we started ${description}`,
-        this.name
-      );
-      await update_npc_memory(
-        npc2Id,
-        `I met with ${otherName} and we started ${description}`,
-        this.name
-      );
-    }
+    const npc1Memory = `I met with ${npc2Name} and we started ${description}`;
+    const npc2Memory = `I met with ${npc1Name} and we started ${description}`;
+
+    await update_npc_memory(npc1Id, npc1Memory, this.name);
+    await update_npc_memory(npc2Id, npc2Memory, this.name);
+
+    console.log(`Updated memories for interaction: ${npc1Id} and ${npc2Id}`);
+
     // Show visual indication of interaction
     const bubbleX = ((pos1.x + pos2.x) * 16) / 2;
     const bubbleY = Math.min(pos1.y, pos2.y) * 16 - 20;
