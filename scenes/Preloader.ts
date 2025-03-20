@@ -5,6 +5,7 @@ import DialogueBox from "./DialogueBox";
 import {
   Ai_response,
   get_npc_memeory,
+  get_npc_memory,
   getNpcAction,
   update_Groot_memory,
   update_npc_memory,
@@ -1601,57 +1602,61 @@ export default class Preloader extends Scene {
       this.gridEngine.turnTowards(npc1Id, Direction.LEFT);
       this.gridEngine.turnTowards(npc2Id, Direction.RIGHT);
     }
+    // Start interaction and wait for the description
+    this.generateInteractionDescription(npc1Id, npc2Id).then((description) => {
+      // Create interaction record with interaction manager
+      const interaction = npcInteractionManager.startInteraction(
+        npc1Id,
+        npc2Id,
+        npc1Name,
+        npc2Name,
+        "chat",
+        3000,
+        description
+      );
 
-    // Start interaction
-    const description = `discussing their day`;
-    const interaction = npcInteractionManager.startInteraction(
-      npc1Id,
-      npc2Id,
-      npc1Name,
-      npc2Name,
-      "chat",
-      3000,
-      description
-    );
+      // Update memory for both NPCs involved
+      const npc1Memory = `I met with ${npc2Name} and we started ${description}`;
+      const npc2Memory = `I met with ${npc1Name} and we started ${description}`;
 
-    // Update memory for any NPC involved
-    const npc1Memory = `I met with ${npc2Name} and we started ${description}`;
-    const npc2Memory = `I met with ${npc1Name} and we started ${description}`;
+      update_npc_memory(npc1Id, npc1Memory, this.name);
+      update_npc_memory(npc2Id, npc2Memory, this.name);
 
-    await update_npc_memory(npc1Id, npc1Memory, this.name);
-    await update_npc_memory(npc2Id, npc2Memory, this.name);
+      console.log(`Updated memories for interaction: ${npc1Id} and ${npc2Id}`);
+      console.log(`They are ${description}`);
 
-    console.log(`Updated memories for interaction: ${npc1Id} and ${npc2Id}`);
+      // Show visual indication of interaction
+      const pos1 = this.gridEngine.getPosition(npc1Id);
+      const pos2 = this.gridEngine.getPosition(npc2Id);
 
-    // Show visual indication of interaction
-    const bubbleX = ((pos1.x + pos2.x) * 16) / 2;
-    const bubbleY = Math.min(pos1.y, pos2.y) * 16 - 20;
+      const bubbleX = ((pos1.x + pos2.x) * 16) / 2;
+      const bubbleY = Math.min(pos1.y, pos2.y) * 16 - 20;
 
-    const chatBubble = this.add
-      .text(bubbleX, bubbleY, "💬", {
-        fontSize: "20px",
-      })
-      .setOrigin(0.5);
+      const chatBubble = this.add
+        .text(bubbleX, bubbleY, "💬", {
+          fontSize: "20px",
+        })
+        .setOrigin(0.5);
 
-    // Fade out and destroy chat bubble when interaction ends
-    this.tweens.add({
-      targets: chatBubble,
-      alpha: { from: 1, to: 0 },
-      duration: interaction.duration,
-      ease: "Linear",
-      onComplete: () => {
-        chatBubble.destroy();
-      },
-    });
+      // Fade out and destroy chat bubble when interaction ends
+      this.tweens.add({
+        targets: chatBubble,
+        alpha: { from: 1, to: 0 },
+        duration: interaction.duration,
+        ease: "Linear",
+        onComplete: () => {
+          chatBubble.destroy();
+        },
+      });
+      npcStateManager.setState(npc1Id, "idle");
+      npcStateManager.setState(npc2Id, "idle");
 
-    npcStateManager.setState(npc1Id, "idle");
-    npcStateManager.setState(npc2Id, "idle");
-
-    // After interaction ends, schedule new decisions
-    this.time.delayedCall(interaction.duration + 100, () => {
-      this.decideNpcAction(npc1Id);
-      this.time.delayedCall(2000, () => {
-        this.decideNpcAction(npc2Id);
+      // After interaction ends, schedule new decisions
+      this.time.delayedCall(interaction.duration + 100, () => {
+        this.decideNpcAction(npc1Id);
+        this.time.delayedCall(2000, () => {
+          this.decideNpcAction(npc2Id);
+        });
       });
     });
   }
@@ -1683,6 +1688,206 @@ export default class Preloader extends Scene {
         // Make a full new decision about what to do next
         this.decideNpcAction(npcId);
       }
+    });
+  }
+
+  // Add this method to your Preloader class
+  private generateInteractionDescription(npc1Id: string, npc2Id: string) {
+    const npc1 = this.npcProperties[npc1Id];
+    const npc2 = this.npcProperties[npc2Id];
+
+    // Helper function to extract meaningful topics from memories
+    const extractMemoryTopic = async (npcId: string) => {
+      // Get the latest memory from the database
+      let memory = "";
+      try {
+        memory = await get_npc_memory(npcId, this.name);
+      } catch (error) {
+        console.error(`Error getting memory for ${npcId}:`, error);
+        return null;
+      }
+
+      if (!memory || memory.length < 10) return null;
+
+      // Significant patterns to look for in memories
+      const significantPatterns = [
+        {
+          regex: /I arrived at ([A-Z]+)/i,
+          extract: (match: RegExpMatchArray) =>
+            `discussing their recent visit to ${match[1]}`,
+        },
+        {
+          regex: /I met with ([A-Za-z]+)/i,
+          extract: (match: RegExpMatchArray) =>
+            `sharing stories about ${match[1]}`,
+        },
+        {
+          regex: /I decided to ([A-Z ]+) because/i,
+          extract: (match: RegExpMatchArray) =>
+            `talking about their plans to ${match[1].toLowerCase()}`,
+        },
+        {
+          regex: /(acorn|book|sword|potion|adventure|secret|town|news)/i,
+          extract: (match: RegExpMatchArray) =>
+            `exchanging information about ${match[1]}s`,
+        },
+      ];
+
+      // Try to find a meaningful topic from memory patterns
+      for (const pattern of significantPatterns) {
+        const match = memory.match(pattern.regex);
+        if (match) {
+          return pattern.extract(match);
+        }
+      }
+
+      // If no specific pattern matches, extract the most recent memory sentence
+      const sentences = memory.split(/[.!?]\s/).filter((s) => s.length > 10);
+      if (sentences.length > 0) {
+        // Get the most recent meaningful sentence
+        for (
+          let i = sentences.length - 1;
+          i >= Math.max(0, sentences.length - 3);
+          i--
+        ) {
+          const sentence = sentences[i].trim();
+          if (sentence.length > 15 && sentence.length < 80) {
+            // Clean up the sentence for better readability
+            const cleanedSentence = sentence
+              .replace(/^I /i, "")
+              .replace(/^decided to /i, "")
+              .replace(/^arrived at /i, "visiting ")
+              .replace(/^met with /i, "meeting ");
+
+            return `chatting about ${cleanedSentence.toLowerCase()}`;
+          }
+        }
+      }
+
+      return null;
+    };
+
+    // Generate unique location-based topics
+    const generateLocationTopic = () => {
+      if (npc1.location === npc2.location && npc1.location !== "UNKNOWN") {
+        const locationTopics = {
+          CHILLMART: [
+            "discussing the latest goods at ChillMart",
+            "comparing prices at ChillMart",
+            "gossiping about ChillMart customers",
+          ],
+          LIBRARY: [
+            "sharing book recommendations",
+            "debating about ancient texts",
+            "whispering about library secrets",
+          ],
+          DROOPYVILLE: [
+            "discussing Droopyville's gossip",
+            "comparing notes about local happenings",
+            "planning improvements for Droopyville",
+          ],
+          PARK: [
+            "admiring the park's scenery",
+            "discussing the strange plants in the park",
+            "sharing peaceful moments in the park",
+          ],
+        };
+
+        const topics =
+          locationTopics[npc1.location as keyof typeof locationTopics];
+        if (topics) {
+          return topics[Math.floor(Math.random() * topics.length)];
+        }
+      }
+      return null;
+    };
+
+    // Main logic to determine the conversation topic
+    return (async () => {
+      // Try to get memory-based topics first
+      const npc1Topic = await extractMemoryTopic(npc1Id);
+      const npc2Topic = await extractMemoryTopic(npc2Id);
+
+      // Location-based topic
+      const locationTopic = generateLocationTopic();
+
+      // Character-specific topics based on personalities
+      const personalityTopics = [
+        // Groot-specific
+        npc1Id === "npc_log" || npc2Id === "npc_log"
+          ? "sharing wild theories about missing acorns"
+          : null,
+
+        // Librarian-specific
+        npc1Id === "librarian" || npc2Id === "librarian"
+          ? "discussing rare books they've discovered"
+          : null,
+
+        // Blacksmith-specific
+        npc1Id === "blacksmith" || npc2Id === "blacksmith"
+          ? "comparing notes on metalworking techniques"
+          : null,
+
+        // Lisa-specific
+        npc1Id === "lisa" || npc2Id === "lisa"
+          ? "exchanging cheerful stories about townsfolk"
+          : null,
+
+        // Anne-specific
+        npc1Id === "anne" || npc2Id === "anne"
+          ? "discussing business opportunities in town"
+          : null,
+
+        // Elsa-specific
+        npc1Id === "elsa" || npc2Id === "elsa"
+          ? "whispering about ancient secrets"
+          : null,
+
+        // Tom-specific
+        npc1Id === "tom" || npc2Id === "tom"
+          ? "sharing travel adventures from distant lands"
+          : null,
+
+        // Warrior-specific
+        npc1Id === "brick" ||
+        npc2Id === "brick" ||
+        npc1Id === "col" ||
+        npc2Id === "col"
+          ? "discussing combat techniques and training"
+          : null,
+      ];
+
+      // Combine topics based on availability and priority
+      const allTopics = [
+        npc1Topic,
+        npc2Topic,
+        locationTopic,
+        ...personalityTopics.filter((topic) => topic !== null),
+      ].filter((topic) => topic !== null) as string[];
+
+      // Add generic fallbacks if we don't have any topics
+      if (allTopics.length === 0) {
+        allTopics.push(
+          "sharing the latest town gossip",
+          "having an animated conversation",
+          "debating something important",
+          "exchanging pleasantries"
+        );
+      }
+
+      // Randomly select a topic with bias toward memory-based topics
+      if (npc1Topic || npc2Topic) {
+        // 70% chance to use memory-based topic if available
+        return Math.random() < 0.7
+          ? (npc1Topic || npc2Topic)!
+          : allTopics[Math.floor(Math.random() * allTopics.length)];
+      }
+
+      // Otherwise just pick randomly
+      return allTopics[Math.floor(Math.random() * allTopics.length)];
+    })().catch((error) => {
+      console.error("Error generating interaction description:", error);
+      return "having a conversation";
     });
   }
 }
