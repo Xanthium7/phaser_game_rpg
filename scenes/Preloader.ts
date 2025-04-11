@@ -346,7 +346,7 @@ export default class Preloader extends Scene {
     this.addCol();
 
     // Initialize AI-controlled NPC actions
-    this.initializeNpcAgent();
+    // this.initializeNpcAgent();
 
     // Set up movement event listeners
     this.gridEngine.movementStarted().subscribe(({ charId, direction }) => {
@@ -415,20 +415,20 @@ export default class Preloader extends Scene {
     });
 
     // Set up regular interaction checks
-    this.npcInteractionCheckTimer = this.time.addEvent({
-      delay: 2000,
-      callback: this.checkForPossibleNPCInteractions,
-      callbackScope: this,
-      loop: true,
-    });
+    // this.npcInteractionCheckTimer = this.time.addEvent({
+    //   delay: 2000,
+    //   callback: this.checkForPossibleNPCInteractions,
+    //   callbackScope: this,
+    //   loop: true,
+    // });
 
     // Set up regular cleanup of expired interactions
-    this.time.addEvent({
-      delay: 5000, // Check every 5 seconds
-      callback: () => npcInteractionManager.cleanupExpiredInteractions(),
-      callbackScope: this,
-      loop: true,
-    });
+    // this.time.addEvent({
+    //   delay: 5000, // Check every 5 seconds
+    //   callback: () => npcInteractionManager.cleanupExpiredInteractions(),
+    //   callbackScope: this,
+    //   loop: true,
+    // });
 
     // Add movement completion tracking
     this.gridEngine
@@ -688,10 +688,10 @@ export default class Preloader extends Scene {
 
         // Set up recurring decisions
         this.time.addEvent({
-          delay: 30000, // 1 minute between decisions
+          delay: 90000, // 1 minute between decisions
           callback: () => this.decideNpcAction(npcId),
           callbackScope: this,
-          loop: true,
+          loop: false,
         });
       });
     });
@@ -807,21 +807,22 @@ export default class Preloader extends Scene {
         console.log(`${npcId} stays idle: ${reasoning}`);
 
         // After idle period, complete action
-        this.time.delayedCall(20000, () => {
-          npcStateManager.completeCurrentAction(npcId);
-          this.scheduleFollowUpAction(npcId);
-        });
+        // this.time.delayedCall(20000, () => {
+        //   npcStateManager.completeCurrentAction(npcId);
+        //   this.scheduleFollowUpAction(npcId);
+        // });
         break;
 
       case "WANDER":
-        this.gridEngine.moveRandomly(npcId, 500);
+      case "WANDER AROUND":
+        this.gridEngine.moveRandomly(npcId, 2000);
         console.log(`${npcId} wanders around: ${reasoning}`);
 
         // After wandering period, complete action
-        this.time.delayedCall(20000, () => {
-          npcStateManager.completeCurrentAction(npcId);
-          this.scheduleFollowUpAction(npcId);
-        });
+        // this.time.delayedCall(20000, () => {
+        //   npcStateManager.completeCurrentAction(npcId);
+        //   this.scheduleFollowUpAction(npcId);
+        // });
         break;
 
       case "GO TO PLAYER":
@@ -1550,7 +1551,7 @@ export default class Preloader extends Scene {
       await update_npc_memory(charId, `I arrived at ${location}`, this.name);
 
       // Schedule follow-up action
-      this.scheduleFollowUpAction(charId);
+      // this.scheduleFollowUpAction(charId);
     }
   }
 
