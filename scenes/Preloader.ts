@@ -1142,10 +1142,10 @@ export default class Preloader extends Scene {
           sprite.setFrame(0);
           break;
         case "left":
-          sprite.setFrame(13);
+          sprite.setFrame(18);
           break;
         case "right":
-          sprite.setFrame(8);
+          sprite.setFrame(12);
           break;
       }
     } else {
