@@ -745,7 +745,7 @@ const Game = ({ userId }: { userId: string }) => {
               playsInline
               ref={remoteVideoRef}
             />
-            {/* Local video */}
+            {/* Local video indeed */}
             <video
               className="w-full rounded-xl max-h-[300px] object-cover mb-4"
               autoPlay
