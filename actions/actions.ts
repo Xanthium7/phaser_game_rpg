@@ -16,7 +16,7 @@ import Groq from "groq-sdk";
 import npcStateManager from "../utils/npcStateManager";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const model_name = "qwen-2.5-32b";
+const model_name = "llama-3.1-8b-instant";
 
 // Map of NPC IDs to their system prompts
 const NPC_PROMPTS: Record<string, string> = {
