@@ -1297,10 +1297,10 @@ export default class Preloader extends Scene {
 
     // Handle current players already in the game
     this.socket.on("currentPlayers", (players: any) => {
-      console.log("Received currentPlayers:", players);
+      // console.log("Received currentPlayers:", players);
       Object.keys(players).forEach((id) => {
         const playerInfo = players[id];
-        console.log(`Processing player ID: ${id}`);
+        // console.log(`Processing player ID: ${id}`);
         if (id === this.socket.id) {
           console.log("Adding current player");
           this.addPlayer(playerInfo, id === this.socket.id);
