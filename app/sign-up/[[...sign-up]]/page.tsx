@@ -25,6 +25,9 @@ export default function Page() {
             backgroundImage: "url('/bg.gif')",
           }}
         >
+          {/* Black opacity overlay */}
+          <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+
           {/* Centered welcome text */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-white text-center">
@@ -34,7 +37,7 @@ export default function Page() {
               </p>
             </div>
           </div>
-        </div>{" "}
+        </div>
       </div>
       {/* Right side - Enhanced Form */}
       <div className="w-full lg:w-1/2 bg-[#161616] flex items-center justify-center p-8">
@@ -113,7 +116,6 @@ export default function Page() {
                     spacingUnit: "1rem",
                   },
                 }}
-                redirectUrl="/"
               />
             </div>
           </div>
