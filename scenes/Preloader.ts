@@ -4,7 +4,6 @@ import { Scene } from "phaser";
 import DialogueBox from "./DialogueBox";
 import {
   Ai_response,
-  get_npc_memeory,
   get_npc_memory,
   getNpcAction,
   update_Groot_memory,
@@ -691,7 +690,7 @@ export default class Preloader extends Scene {
 
     // For Groot, get memory
     if (npcId === "npc_log") {
-      const groot_memory = await get_npc_memeory("npc_log", this.name);
+      const groot_memory = await get_npc_memory("npc_log", this.name);
       npc.memories = groot_memory;
     }
 

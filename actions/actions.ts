@@ -62,6 +62,20 @@ export interface GameState {
   environment: { nearbyPlayers: number; nearbyNPCs: string[] };
   availableActions: string[];
 }
+type History = {
+  id: number;
+  username: string;
+  log_groot: string;
+  librarian?: string;
+  blacksmith?: string;
+  lisa?: string;
+  anne?: string;
+  elsa?: string;
+  tom?: string;
+  brick?: string;
+  col?: string;
+  [key: string]: string | number | undefined; // Index signature for dynamic access
+};
 
 export async function Ai_response(
   npcId: string,
@@ -153,14 +167,6 @@ export async function get_npc_memory(
     console.error(`Error getting memory for ${npcId}:`, error);
     return "";
   }
-}
-
-// Keep for backward compatibility
-export async function get_npc_memeory(
-  npcId: string,
-  username: string
-): Promise<string> {
-  return get_npc_memory(npcId, username);
 }
 
 export async function getNpcAction(
@@ -273,20 +279,6 @@ function getTimeOfDay(): string {
 
 // Add function to update memory for any NPC
 // Define a type for the History model
-type History = {
-  id: number;
-  username: string;
-  log_groot: string;
-  librarian?: string;
-  blacksmith?: string;
-  lisa?: string;
-  anne?: string;
-  elsa?: string;
-  tom?: string;
-  brick?: string;
-  col?: string;
-  [key: string]: string | number | undefined; // Index signature for dynamic access
-};
 
 export async function update_npc_memory(
   npcId: string,
