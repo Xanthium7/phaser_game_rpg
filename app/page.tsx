@@ -28,6 +28,7 @@ export default function Home() {
   const { isLoaded, isSignedIn, user } = useUser();
 
   const [isMobile, setIsMobile] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -37,18 +38,19 @@ export default function Home() {
     window.location.href = `/room/${inputId}`;
   };
   useEffect(() => {
+    setIsClient(true);
+
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768); // 768px breakpoint for mobile devices
+      setIsMobile(window.innerWidth < 768);
     };
 
-    handleResize(); // Check on initial render
-    window.addEventListener("resize", handleResize); // Listen for window resize
+    handleResize();
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener("resize", handleResize); // Cleanup on unmount
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
-
   if (!isLoaded || !isSignedIn) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -57,6 +59,15 @@ export default function Home() {
             <SignInButton />
           </div>
         </SignedOut>
+      </div>
+    );
+  }
+
+  // Show loading state until client-side code runs
+  if (!isClient) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-3xl font-bold">Loading...</div>
       </div>
     );
   }
