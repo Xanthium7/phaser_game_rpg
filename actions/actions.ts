@@ -100,24 +100,6 @@ export async function Ai_response(
         CONVERSATION HISTORY:
         ${memory}
 
-        AVAILABLE ACTIONS:
-        - GO TO CHILLMART
-        - GO TO LIBRARY
-        - GO TO DROOPYVILLE
-        - GO TO PARK
-        - GO TO PLAYER
-        - WANDER AROUND
-        - STAY IDLE
-
-        RESPONSE FORMAT:
-        1. If the user's request requires an action:
-           Respond with: "Message [ACTION_NAME]"
-           Example: "I'll get some snacks! [GO TO CHILLMART]"
-
-        2. If no action is needed:
-           Respond with just the message
-           Example: "Hello! Nice to meet you!"
-
         Remember to maintain character personality and reference past conversations naturally.
 
         User Input: ${username}: ${prompt}
