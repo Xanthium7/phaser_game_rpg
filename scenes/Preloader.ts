@@ -2,13 +2,7 @@ import { GridEngine, Direction } from "grid-engine";
 import * as Phaser from "phaser";
 import { Scene } from "phaser";
 import DialogueBox from "./DialogueBox";
-import {
-  Ai_response,
-  get_npc_memory,
-  getNpcAction,
-  update_Groot_memory,
-  update_npc_memory,
-} from "@/actions/actions";
+import { Ai_response, update_npc_memory } from "@/actions/actions";
 import {
   groot_log_prompt,
   librarian_prompt,
@@ -20,7 +14,7 @@ import {
   brick_prompt,
   col_prompt,
 } from "@/characterPrompts";
-import npcStateManager, { NPCAction } from "../utils/npcStateManager";
+import npcStateManager from "../utils/npcStateManager";
 
 declare global {
   interface Window {
@@ -193,8 +187,6 @@ export default class Preloader extends Scene {
   }
 
   preload() {
-    // const character_grid_width = 136 * Math.floor(Math.random() * 10);
-
     this.load.tilemapTiledJSON("map", "/assets/map1.json");
     this.load.image("tileset", "/assets/Overworld1.png");
     this.load.spritesheet("hero", "/assets/character.png", {
@@ -638,73 +630,6 @@ export default class Preloader extends Scene {
     return "UNKNOWN";
   }
 
-  private async executeNpcAction(
-    npcId: string,
-    actionType: string,
-    reasoning: string
-  ): Promise<void> {
-    //* NEED TO UPDATE MEMORY FOR TOHER NPCS AS WELL
-    // For Groot, update memory about the decision
-    await update_npc_memory(
-      npcId,
-      `I decided to ${actionType} because ${reasoning}`,
-      this.name
-    );
-
-    switch (actionType) {
-      case "IDLE":
-        this.gridEngine.stopMovement(npcId);
-        console.log(`${npcId} stays idle: ${reasoning}`);
-
-        // After idle period, complete action
-        // this.time.delayedCall(20000, () => {
-        //   npcStateManager.completeCurrentAction(npcId);
-        //   this.scheduleFollowUpAction(npcId);
-        // });
-        break;
-
-      case "WANDER":
-      case "WANDER AROUND":
-        this.gridEngine.moveRandomly(npcId, 2000);
-        console.log(`${npcId} wanders around: ${reasoning}`);
-
-        // After wandering period, complete action
-        // this.time.delayedCall(20000, () => {
-        //   npcStateManager.completeCurrentAction(npcId);
-        //   this.scheduleFollowUpAction(npcId);
-        // });
-        break;
-
-      case "GO TO PLAYER":
-        const playerPos = this.gridEngine.getPosition(this.socket.id);
-        console.log(
-          `${npcId} moves to player at ${playerPos.x},${playerPos.y}: ${reasoning}`
-        );
-        this.gridEngine.moveTo(npcId, playerPos);
-        break;
-
-      case "GO TO CHILLMART":
-      case "GO TO DROOPYVILLE":
-      case "GO TO LIBRARY":
-      case "GO TO PARK":
-        const placeName = actionType.replace("GO TO ", "");
-        const destination = globalPlaces[placeName];
-
-        if (destination) {
-          console.log(`${npcId} moves to ${placeName}: ${reasoning}`);
-          this.gridEngine.moveTo(npcId, destination);
-        } else {
-          console.error(`Unknown place: ${placeName}`);
-          this.gridEngine.moveRandomly(npcId, 1000);
-        }
-        break;
-
-      default:
-        console.log(`Unknown action: ${actionType}`);
-        this.gridEngine.moveRandomly(npcId, 1000);
-    }
-  }
-
   private handleVideoCall(): void {
     const currentPlayerId = this.socket.id;
     const facingDirection = this.gridEngine.getFacingDirection(currentPlayerId);
@@ -821,7 +746,6 @@ export default class Preloader extends Scene {
       }
     }
 
-    // Handle location-based interactions only if no NPC interaction happened
     if (
       (targetPosition.x === 82 && targetPosition.y === 89) ||
       (targetPosition.x === 81 && targetPosition.y === 89) ||
