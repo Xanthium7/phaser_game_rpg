@@ -638,83 +638,6 @@ export default class Preloader extends Scene {
     return "UNKNOWN";
   }
 
-  // Function to decide NPC's next action - updated with optional responseAction parameter
-  private async decideNpcAction(
-    npcId: string = "npc_log",
-    responseAction?: string
-  ): Promise<void> {
-    const npc = this.npcProperties[npcId];
-    if (!npc) return;
-
-    // Skip if NPC is already in an interaction or moving
-    const currentState = npcStateManager.getState(npcId);
-    if (currentState === "moving") {
-      console.log(
-        `Skipping decision for ${npcId} - current state: ${currentState}`
-      );
-      return;
-    }
-
-    console.log(
-      `Deciding action for ${npcId} (${npc.name})${
-        responseAction ? " based on response" : ""
-      }`
-    );
-
-    // Update NPC location
-    const location = this.getNpcLocation(npcId);
-    npc.location = location;
-
-    // For Groot, get memory
-    if (npcId === "npc_log") {
-      const groot_memory = await get_npc_memory("npc_log", this.name);
-      npc.memories = groot_memory;
-    }
-
-    // Store the real previous action state
-    const previousAction = npc.currentAction || "NONE";
-    npc.lastAction = previousAction;
-
-    let actionType: string;
-    let reasonText: string;
-
-    if (responseAction) {
-      // Use the action extracted from the response
-      actionType = responseAction;
-      reasonText = "As requested by player";
-      console.log(`Using action from response: ${actionType}`);
-    } else {
-      // Get action from AI as usual
-      const actionResponse = await getNpcAction(npc, this.name);
-      let [action, reason] = actionResponse.split(" [");
-      actionType = action.trim();
-      reasonText = reason ? reason.slice(0, -1) : "";
-    }
-
-    // Update NPC state
-    npc.currentAction = actionType;
-
-    console.log(`NPC ${npcId} will ${actionType} because ${reasonText}`);
-    console.log(
-      `Previous action was: ${previousAction}, New action: ${actionType}`
-    );
-
-    // Create an action record
-    const action: NPCAction = {
-      type: actionType,
-      reason: reasonText,
-      startTime: Date.now(),
-      completed: false,
-    };
-
-    // Set action in state manager
-    npcStateManager.setCurrentAction(npcId, action);
-    npcStateManager.setState(npcId, "moving");
-
-    // Execute the action
-    await this.executeNpcAction(npcId, actionType, reasonText);
-  }
-
   private async executeNpcAction(
     npcId: string,
     actionType: string,
@@ -880,24 +803,9 @@ export default class Preloader extends Scene {
             this.hideLoadingBubble(currentInteractingNpcId);
             this.makeNPCFacePlayer(currentInteractingNpcId, currentPlayerId);
             this.dialogueBox.show(response);
-            // Extract action command if present in the response
-            const actionMatch = response.match(
-              /\[(GO TO .+?|WANDER|IDLE|STAY IDLE)\]/i
-            );
-            if (actionMatch) {
-              // Extract the action without brackets
-              const extractedAction = actionMatch[1].trim();
-              console.log(`Extracted action from response: ${extractedAction}`);
-
-              // Use the extracted action to guide NPC behavior directly
-              this.decideNpcAction(currentInteractingNpcId, extractedAction);
-            } else {
-              // No explicit action found in response
-              this.gridEngine.moveRandomly(currentInteractingNpcId);
-            }
+            this.gridEngine.moveRandomly(currentInteractingNpcId, 5000);
           });
         } else {
-          // If user canceled the prompt
           this.hideLoadingBubble(npcId);
           npcStateManager.setState(npcId, "idle");
           this.gridEngine.moveRandomly(npcId);
