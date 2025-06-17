@@ -10,6 +10,7 @@
     "postinstall": "prisma generate && prisma migrate deploy"
   },
   "dependencies": {
+    "@ai-sdk/google": "^1.2.19",
     "@azure/web-pubsub-socket.io": "^1.1.0",
     "@clerk/nextjs": "^6.5.0",
     "@prisma/client": "^6.2.1",
@@ -17,6 +18,8 @@
     "@radix-ui/react-slot": "^1.1.1",
     "@studio-freight/react-lenis": "^0.0.47",
     "@types/socket.io-client": "^1.4.36",
+    "@vercel/sdk": "^1.8.3",
+    "ai": "^4.3.16",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "express": "^4.21.1",

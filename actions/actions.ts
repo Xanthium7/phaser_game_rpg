@@ -12,11 +12,9 @@ import {
   col_prompt,
 } from "@/characterPrompts";
 import { prisma } from "@/lib/db";
-import Groq from "groq-sdk";
 import npcStateManager from "../utils/npcStateManager";
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const model_name = "llama-3.1-8b-instant";
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 // Map of NPC IDs to their system prompts
 const NPC_PROMPTS: Record<string, string> = {
@@ -88,13 +86,15 @@ export async function Ai_response(
     const npcName = NPC_NAMES[npcId] || "NPC";
 
     // Get memory for this specific NPC
-    const memory = await get_npc_memory(npcId, username);
-
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `
+    const memory = await get_npc_memory(npcId, username); // Use Google Gemini instead of Groq
+    const { text } = await generateText({
+      model: google("gemini-2.5-flash-preview-04-17"),
+      experimental_providerMetadata: {
+        google: {
+          enableThinking: false,
+        },
+      },
+      prompt: `
         ${npcPrompt}
 
         CONVERSATION HISTORY:
@@ -119,18 +119,15 @@ export async function Ai_response(
            Example: "Hello! Nice to meet you!"
 
         Remember to maintain character personality and reference past conversations naturally.
-        `,
-        },
-        {
-          role: "user",
-          content: `${username}: ${prompt}`,
-        },
-      ],
-      model: model_name,
+
+        User Input: ${username}: ${prompt}
+        
+        Please respond as ${npcName}:
+      `,
       temperature: 0.3,
     });
 
-    const response = chatCompletion.choices[0]?.message?.content?.trim() || "";
+    const response = text.trim() || "";
     const memoryEntry = `\n${username}: ${prompt}\n${npcName}: ${response}\n`;
     await update_npc_memory(npcId, memoryEntry, username);
     return response;
@@ -177,13 +174,15 @@ export async function getNpcAction(
     // Get recent action history from state manager
     const recentActionSummary = npcStateManager.getActionSummary(
       npc_properties.name.toLowerCase()
-    );
-
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `
+    ); // Use Google Gemini for NPC action decisions
+    const { text } = await generateText({
+      model: google("gemini-2.5-flash-preview-04-17"),
+      experimental_providerMetadata: {
+        google: {
+          enableThinking: false,
+        },
+      },
+      prompt: `
       You are an NPC in a game world named ${
         npc_properties.name
       }. You are simulating life in a town.
@@ -209,11 +208,7 @@ export async function getNpcAction(
       GO TO CHILLMART [hungry and need to buy some snacks]
       IDLE [enjoying the nice weather and taking a break]
       GO TO LIBRARY [want to read about local history]
-      `,
-        },
-        {
-          role: "user",
-          content: `
+
       Character Details:
       - Personality: ${npc_properties.personality}
       - Background: ${npc_properties.systemPrompt}
@@ -227,13 +222,10 @@ export async function getNpcAction(
       Choose your next action carefully. If you've been going to the same place repeatedly, consider doing something else.
       What single action will you take? Remember to use exact format: ActionName [reasoning]
       `,
-        },
-      ],
-      model: model_name,
       temperature: 0.7, // Higher temperature for more varied responses
     });
 
-    const response = chatCompletion.choices[0]?.message?.content?.trim() || "";
+    const response = text.trim() || "";
 
     // Validate response format
     if (!response.includes("[") || !response.includes("]")) {

@@ -624,29 +624,6 @@ export default class Preloader extends Scene {
     this.gridEngine.moveRandomly(id, randomMoveDelay);
   }
 
-  // Initialize the agentic system for the NPC
-  private initializeNpcAgent() {
-    // Create a decision timer for each NPC
-    Object.keys(this.npcProperties).forEach((npcId) => {
-      // Stagger the initial decisions to prevent all NPCs deciding at once
-      const initialDelay = Phaser.Math.Between(2000, 10000);
-
-      // Each NPC gets their own recurring decision timer
-      this.time.delayedCall(initialDelay, () => {
-        // Make initial decision
-        this.decideNpcAction(npcId);
-
-        // Set up recurring decisions
-        this.time.addEvent({
-          delay: 90000, // 1 minute between decisions
-          callback: () => this.decideNpcAction(npcId),
-          callbackScope: this,
-          loop: false,
-        });
-      });
-    });
-  }
-
   private getNpcLocation(npcName: string): string {
     const position = this.gridEngine.getPosition(npcName);
 
