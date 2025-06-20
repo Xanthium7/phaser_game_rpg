@@ -41,6 +41,7 @@ export default class Preloader extends Scene {
   private nameTexts: { [id: string]: Phaser.GameObjects.Text } = {};
   private characterGridWidths: { [id: string]: number } = {};
   private dialogueBox!: DialogueBox;
+  private beepSound!: Phaser.Sound.BaseSound;
 
   private npcDecisionIntervals: Map<string, Phaser.Time.TimerEvent> = new Map();
 
@@ -189,6 +190,7 @@ export default class Preloader extends Scene {
   preload() {
     this.load.tilemapTiledJSON("map", "/assets/map1.json");
     this.load.image("tileset", "/assets/Overworld1.png");
+    this.load.audio("click", "/assets/audio.wav");
     this.load.spritesheet("hero", "/assets/character.png", {
       frameWidth: 16,
       frameHeight: 32,
@@ -237,6 +239,7 @@ export default class Preloader extends Scene {
     const groundLayer = map.createLayer("ground", tileset!, 0, 0);
     const fenceLayer = map.createLayer("colliding", tileset!, 0, 0);
     const vaseLayer = map.createLayer("vases", tileset!, 0, 0);
+    this.beepSound = this.sound.add("click", { volume: 0.9 });
 
     this.input.keyboard?.removeCapture(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
@@ -673,6 +676,9 @@ export default class Preloader extends Scene {
     if (currentTime - this.lastInteractionTime < this.interactionCooldown) {
       return; // Prevent spamming
     }
+
+    this.beepSound.play();
+
     this.lastInteractionTime = currentTime;
 
     const currentPlayerId = this.socket.id;
