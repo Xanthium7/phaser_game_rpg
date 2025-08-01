@@ -72,26 +72,26 @@ export default function Home() {
     );
   }
 
-  if (isMobile) {
-    return (
-      <div className="flex flex-col justify-center items-center h-screen p-4">
-        <Image
-          src={"/mobile.jpg"}
-          width={800}
-          height={800}
-          className="rounded-xl  border-[4px] border-[#ffffff1a] object-center object-cover "
-          alt=""
-        ></Image>
-        <p className="text-center font-bold text-xl text-gray-700">
-          OPEN THIS ON DESKTOP!!!
-        </p>
-        <p className="text-center   text-gray-700">
-          (PS. I&apos;m working on a mobile version of the game controls and
-          it&apos;ll be ready very soon!)
-        </p>
-      </div>
-    );
-  }
+  // if (isMobile) {
+  //   return (
+  //     <div className="flex flex-col justify-center items-center h-screen p-4">
+  //       <Image
+  //         src={"/mobile.jpg"}
+  //         width={800}
+  //         height={800}
+  //         className="rounded-xl  border-[4px] border-[#ffffff1a] object-center object-cover "
+  //         alt=""
+  //       ></Image>
+  //       <p className="text-center font-bold text-xl text-gray-700">
+  //         OPEN THIS ON DESKTOP!!!
+  //       </p>
+  //       <p className="text-center   text-gray-700">
+  //         (PS. I&apos;m working on a mobile version of the game controls and
+  //         it&apos;ll be ready very soon!)
+  //       </p>
+  //     </div>
+  //   );
+  // }
   return (
     <div className={` ${vt232.className} overflow-x-hidden `}>
       <div

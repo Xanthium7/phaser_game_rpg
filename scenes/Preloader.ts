@@ -43,6 +43,16 @@ export default class Preloader extends Scene {
   private dialogueBox!: DialogueBox;
   private beepSound!: Phaser.Sound.BaseSound;
 
+  // Mobile controls
+  private mobileControls: {
+    leftButton?: Phaser.GameObjects.Graphics;
+    rightButton?: Phaser.GameObjects.Graphics;
+    upButton?: Phaser.GameObjects.Graphics;
+    downButton?: Phaser.GameObjects.Graphics;
+    actionButton?: Phaser.GameObjects.Graphics;
+  } = {};
+  private isMobile: boolean = false;
+
   private npcDecisionIntervals: Map<string, Phaser.Time.TimerEvent> = new Map();
 
   // Add a new dictionary for NPC properties
@@ -241,6 +251,9 @@ export default class Preloader extends Scene {
     const vaseLayer = map.createLayer("vases", tileset!, 0, 0);
     this.beepSound = this.sound.add("click", { volume: 0.9 });
 
+    // Check if device is mobile
+    this.isMobile = this.sys.game.device.input.touch;
+
     this.input.keyboard?.removeCapture(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     //* Video call trigger
@@ -384,6 +397,11 @@ export default class Preloader extends Scene {
     Object.keys(this.npcProperties).forEach((npcId) => {
       npcStateManager.initializeNPC(npcId);
     });
+
+    // Create mobile controls only for mobile devices
+    if (this.isMobile) {
+      this.createMobileControls();
+    }
   }
 
   private lastDirection: string = "down";
@@ -1162,19 +1180,32 @@ export default class Preloader extends Scene {
 
     if (!this.gridEngine.isMoving(playerId)) {
       let moved = false;
-      const speed = this.shiftKey.isDown ? 8 : 4;
+      const speed = this.shiftKey?.isDown ? 8 : 4;
       this.gridEngine.setSpeed(playerId, speed);
 
-      if (this.cursors.left.isDown) {
+      // Check keyboard inputs first, then mobile inputs (if on mobile)
+      if (
+        this.cursors.left.isDown ||
+        (this.isMobile && this.mobileInputState.left)
+      ) {
         this.gridEngine.move(playerId, Direction.LEFT);
         moved = true;
-      } else if (this.cursors.right.isDown) {
+      } else if (
+        this.cursors.right.isDown ||
+        (this.isMobile && this.mobileInputState.right)
+      ) {
         this.gridEngine.move(playerId, Direction.RIGHT);
         moved = true;
-      } else if (this.cursors.up.isDown) {
+      } else if (
+        this.cursors.up.isDown ||
+        (this.isMobile && this.mobileInputState.up)
+      ) {
         this.gridEngine.move(playerId, Direction.UP);
         moved = true;
-      } else if (this.cursors.down.isDown) {
+      } else if (
+        this.cursors.down.isDown ||
+        (this.isMobile && this.mobileInputState.down)
+      ) {
         this.gridEngine.move(playerId, Direction.DOWN);
         moved = true;
       } else if (this.cursors.space.isDown) {
@@ -1212,6 +1243,259 @@ export default class Preloader extends Scene {
           speed: speed,
         });
       }
+    }
+  }
+
+  private createMobileControls(): void {
+    const { width, height } = this.cameras.main;
+
+    // Button size and styling
+    const buttonSize = 50;
+    const buttonColor = 0x333333;
+    const buttonAlpha = 0.7;
+    const buttonTextColor = "#FFFFFF";
+
+    // Create directional pad on bottom left with proper margins
+    const padCenterX = 100;
+    const padCenterY = height - 220; // Moved up by ~80px (2 button heights)
+    const buttonSpacing = 55;
+
+    // Up arrow
+    const upGraphics = this.add
+      .graphics()
+      .fillStyle(buttonColor, buttonAlpha)
+      .fillRoundedRect(
+        -buttonSize / 2,
+        -buttonSize / 2,
+        buttonSize,
+        buttonSize,
+        10
+      )
+      .setPosition(padCenterX, padCenterY - buttonSpacing)
+      .setScrollFactor(0)
+      .setDepth(999)
+      .setInteractive(
+        new Phaser.Geom.Rectangle(
+          -buttonSize / 2,
+          -buttonSize / 2,
+          buttonSize,
+          buttonSize
+        ),
+        Phaser.Geom.Rectangle.Contains
+      );
+
+    this.add
+      .text(padCenterX, padCenterY - buttonSpacing, "↑", {
+        fontSize: "20px",
+        color: buttonTextColor,
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(1001);
+
+    // Down arrow
+    const downGraphics = this.add
+      .graphics()
+      .fillStyle(buttonColor, buttonAlpha)
+      .fillRoundedRect(
+        -buttonSize / 2,
+        -buttonSize / 2,
+        buttonSize,
+        buttonSize,
+        10
+      )
+      .setPosition(padCenterX, padCenterY + buttonSpacing)
+      .setScrollFactor(0)
+      .setDepth(999)
+      .setInteractive(
+        new Phaser.Geom.Rectangle(
+          -buttonSize / 2,
+          -buttonSize / 2,
+          buttonSize,
+          buttonSize
+        ),
+        Phaser.Geom.Rectangle.Contains
+      );
+
+    this.add
+      .text(padCenterX, padCenterY + buttonSpacing, "↓", {
+        fontSize: "20px",
+        color: buttonTextColor,
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(1001);
+
+    // Left arrow
+    const leftGraphics = this.add
+      .graphics()
+      .fillStyle(buttonColor, buttonAlpha)
+      .fillRoundedRect(
+        -buttonSize / 2,
+        -buttonSize / 2,
+        buttonSize,
+        buttonSize,
+        10
+      )
+      .setPosition(padCenterX - buttonSpacing, padCenterY)
+      .setScrollFactor(0)
+      .setDepth(999)
+      .setInteractive(
+        new Phaser.Geom.Rectangle(
+          -buttonSize / 2,
+          -buttonSize / 2,
+          buttonSize,
+          buttonSize
+        ),
+        Phaser.Geom.Rectangle.Contains
+      );
+
+    this.add
+      .text(padCenterX - buttonSpacing, padCenterY, "←", {
+        fontSize: "20px",
+        color: buttonTextColor,
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(1001);
+
+    // Right arrow
+    const rightGraphics = this.add
+      .graphics()
+      .fillStyle(buttonColor, buttonAlpha)
+      .fillRoundedRect(
+        -buttonSize / 2,
+        -buttonSize / 2,
+        buttonSize,
+        buttonSize,
+        10
+      )
+      .setPosition(padCenterX + buttonSpacing, padCenterY)
+      .setScrollFactor(0)
+      .setDepth(999)
+      .setInteractive(
+        new Phaser.Geom.Rectangle(
+          -buttonSize / 2,
+          -buttonSize / 2,
+          buttonSize,
+          buttonSize
+        ),
+        Phaser.Geom.Rectangle.Contains
+      );
+
+    this.add
+      .text(padCenterX + buttonSpacing, padCenterY, "→", {
+        fontSize: "20px",
+        color: buttonTextColor,
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(1001);
+
+    // Action button on bottom right with proper margin
+    const actionButtonSize = 60;
+    const actionGraphics = this.add
+      .graphics()
+      .fillStyle(0x4caf50, buttonAlpha)
+      .fillRoundedRect(
+        -actionButtonSize / 2,
+        -actionButtonSize / 2,
+        actionButtonSize,
+        actionButtonSize,
+        15
+      )
+      .setPosition(width - 60, height - 180) // Moved up a bit more
+      .setScrollFactor(0)
+      .setDepth(999)
+      .setInteractive(
+        new Phaser.Geom.Rectangle(
+          -actionButtonSize / 2,
+          -actionButtonSize / 2,
+          actionButtonSize,
+          actionButtonSize
+        ),
+        Phaser.Geom.Rectangle.Contains
+      );
+
+    // Add a filled white circle instead of "ACT" text
+    this.add
+      .graphics()
+      .fillStyle(0xffffff, 1.0) // White filled circle
+      .fillCircle(width - 60, height - 180, 12) // Circle with radius 12
+      .setScrollFactor(0)
+      .setDepth(1001);
+
+    // Store references for later use
+    this.mobileControls.upButton = upGraphics;
+    this.mobileControls.downButton = downGraphics;
+    this.mobileControls.leftButton = leftGraphics;
+    this.mobileControls.rightButton = rightGraphics;
+    this.mobileControls.actionButton = actionGraphics;
+
+    // Add touch event listeners
+    upGraphics.on("pointerdown", () => this.handleMobileInput("up", true));
+    upGraphics.on("pointerup", () => this.handleMobileInput("up", false));
+    upGraphics.on("pointerout", () => this.handleMobileInput("up", false));
+
+    downGraphics.on("pointerdown", () => this.handleMobileInput("down", true));
+    downGraphics.on("pointerup", () => this.handleMobileInput("down", false));
+    downGraphics.on("pointerout", () => this.handleMobileInput("down", false));
+
+    leftGraphics.on("pointerdown", () => this.handleMobileInput("left", true));
+    leftGraphics.on("pointerup", () => this.handleMobileInput("left", false));
+    leftGraphics.on("pointerout", () => this.handleMobileInput("left", false));
+
+    rightGraphics.on("pointerdown", () =>
+      this.handleMobileInput("right", true)
+    );
+    rightGraphics.on("pointerup", () => this.handleMobileInput("right", false));
+    rightGraphics.on("pointerout", () =>
+      this.handleMobileInput("right", false)
+    );
+
+    actionGraphics.on("pointerdown", () =>
+      this.handleMobileInput("action", true)
+    );
+    actionGraphics.on("pointerup", () =>
+      this.handleMobileInput("action", false)
+    );
+    actionGraphics.on("pointerout", () =>
+      this.handleMobileInput("action", false)
+    );
+  }
+
+  private mobileInputState = {
+    up: false,
+    down: false,
+    left: false,
+    right: false,
+    action: false,
+  };
+
+  private handleMobileInput(direction: string, isPressed: boolean): void {
+    switch (direction) {
+      case "up":
+        this.mobileInputState.up = isPressed;
+        break;
+      case "down":
+        this.mobileInputState.down = isPressed;
+        break;
+      case "left":
+        this.mobileInputState.left = isPressed;
+        break;
+      case "right":
+        this.mobileInputState.right = isPressed;
+        break;
+      case "action":
+        this.mobileInputState.action = isPressed;
+        if (isPressed) {
+          this.handleInteractivity();
+        }
+        break;
     }
   }
 }
