@@ -398,8 +398,10 @@ export default class Preloader extends Scene {
       npcStateManager.initializeNPC(npcId);
     });
 
-    // Create mobile controls for testing and visualization (always show)
-    this.createMobileControls();
+    // Create mobile controls only for mobile devices
+    if (this.isMobile) {
+      this.createMobileControls();
+    }
   }
 
   private lastDirection: string = "down";
@@ -1181,17 +1183,29 @@ export default class Preloader extends Scene {
       const speed = this.shiftKey?.isDown ? 8 : 4;
       this.gridEngine.setSpeed(playerId, speed);
 
-      // Check keyboard inputs first, then mobile inputs
-      if (this.cursors.left.isDown || this.mobileInputState.left) {
+      // Check keyboard inputs first, then mobile inputs (if on mobile)
+      if (
+        this.cursors.left.isDown ||
+        (this.isMobile && this.mobileInputState.left)
+      ) {
         this.gridEngine.move(playerId, Direction.LEFT);
         moved = true;
-      } else if (this.cursors.right.isDown || this.mobileInputState.right) {
+      } else if (
+        this.cursors.right.isDown ||
+        (this.isMobile && this.mobileInputState.right)
+      ) {
         this.gridEngine.move(playerId, Direction.RIGHT);
         moved = true;
-      } else if (this.cursors.up.isDown || this.mobileInputState.up) {
+      } else if (
+        this.cursors.up.isDown ||
+        (this.isMobile && this.mobileInputState.up)
+      ) {
         this.gridEngine.move(playerId, Direction.UP);
         moved = true;
-      } else if (this.cursors.down.isDown || this.mobileInputState.down) {
+      } else if (
+        this.cursors.down.isDown ||
+        (this.isMobile && this.mobileInputState.down)
+      ) {
         this.gridEngine.move(playerId, Direction.DOWN);
         moved = true;
       } else if (this.cursors.space.isDown) {
