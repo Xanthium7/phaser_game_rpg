@@ -54,12 +54,12 @@ export default function Page() {
             </p>
             {/* Sign up link */}
             <p className="text-gray-400">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link
-                href="/sign-up"
-                className="text-purple-400 hover:text-purple-300 underline font-semibold"
+              href="/sign-up"
+              className="text-purple-400 hover:text-purple-300 underline font-semibold"
               >
-                Sign up
+              Sign up
               </Link>
             </p>{" "}
           </div>

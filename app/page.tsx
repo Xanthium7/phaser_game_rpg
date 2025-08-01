@@ -17,7 +17,6 @@ import { VT323 } from "next/font/google";
 import TypingAnimation from "@/components/ui/typing-animation";
 
 import Features from "@/components/Features";
-import Image from "next/image";
 const vt232 = VT323({
   subsets: ["latin"],
   weight: "400",
@@ -27,7 +26,6 @@ export default function Home() {
   const [inputId, setInputId] = useState("");
   const { isLoaded, isSignedIn, user } = useUser();
 
-  const [isMobile, setIsMobile] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,17 +37,6 @@ export default function Home() {
   };
   useEffect(() => {
     setIsClient(true);
-
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
   }, []);
   if (!isLoaded || !isSignedIn) {
     return (
