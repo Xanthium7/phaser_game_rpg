@@ -88,7 +88,7 @@ export async function Ai_response(
     // Get memory for this specific NPC
     const memory = await get_npc_memory(npcId, username); // Use Google Gemini instead of Groq
     const { text } = await generateText({
-      model: google("gemini-2.5-flash-preview-04-17"),
+      model: google("gemini-2.5-flash-lite"),
       experimental_providerMetadata: {
         google: {
           enableThinking: false,
@@ -99,11 +99,8 @@ export async function Ai_response(
 
         CONVERSATION HISTORY:
         ${memory}
-
         Remember to maintain character personality and reference past conversations naturally.
-
         User Input: ${username}: ${prompt}
-        
         Please respond as ${npcName}:
       `,
       temperature: 0.3,
