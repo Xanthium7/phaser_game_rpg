@@ -116,6 +116,14 @@ https://github.com/user-attachments/assets/30cd8a7f-04db-4bce-b17a-e0170b837e2b
 
 
 
+## DAY 25-35
+ - DESIGNED MORE NPCS
+ - ADDED THOSE CUSTOME NPCS in the game
+ - Gave all those NPCs custom personalities
+ - Updated the auth ui and flow
+ - Fixed bug wiht music streaming
+ - Changed the docker container to GCP
+
 
 
 
