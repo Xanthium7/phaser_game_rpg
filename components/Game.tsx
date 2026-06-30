@@ -334,33 +334,24 @@ const Game = ({ userId }: { userId: string }) => {
 
     socket.on("playPlaylist", ({ playlistLink }: any) => {
       console.log("Received playPlaylist event with link:", playlistLink);
-      // console.log("Type of playlistLink:", typeof playlistLink);
-      // if (typeof playlistLink !== "string") {
-      //   console.error("Invalid playlistLink type:", typeof playlistLink);
-      //   return;
-      // }
       setPlaylistLink(playlistLink);
       if (playerRef.current) {
-        const playlistId = extractYouTubePlaylistID(playlistLink);
-        if (playlistId) {
-          console.log("Loading playlist with ID:", playlistId);
-          playerRef.current.loadPlaylist({
-            list: playlistId,
-            listType: "playlist",
-            playerVars: {
-              autoplay: 1,
-              controls: 0,
-              disablekb: 1,
-              modestbranding: 1,
-              origin: window.location.origin,
-              rel: 0,
-            },
-          });
+        const ytData = extractYouTubeID(playlistLink);
+        if (ytData) {
+          console.log(`Loading ${ytData.type} with ID:`, ytData.id);
+          if (ytData.type === "playlist") {
+            playerRef.current.loadPlaylist({
+              list: ytData.id,
+              listType: "playlist"
+            });
+          } else {
+            playerRef.current.loadVideoById(ytData.id);
+          }
           // Explicitly play after loading
           playerRef.current.playVideo();
           console.log("Triggered playVideo on the player.");
         } else {
-          console.error("Invalid playlist ID extracted.");
+          console.error("Invalid YouTube ID extracted.");
         }
       } else {
         console.error("YouTube player is not ready.");
@@ -478,10 +469,26 @@ const Game = ({ userId }: { userId: string }) => {
 
   //* JUKEBOX
 
-  const extractYouTubePlaylistID = (url: string): string | null => {
+  const extractYouTubeID = (url: string): { type: "playlist" | "video"; id: string } | null => {
     try {
       const urlObj = new URL(url);
-      return urlObj.searchParams.get("list");
+      const listId = urlObj.searchParams.get("list");
+      if (listId) {
+        return { type: "playlist", id: listId };
+      }
+      
+      const videoId = urlObj.searchParams.get("v");
+      if (videoId) {
+        return { type: "video", id: videoId };
+      }
+
+      if (urlObj.hostname === "youtu.be") {
+        const shortVideoId = urlObj.pathname.slice(1);
+        if (shortVideoId) {
+          return { type: "video", id: shortVideoId };
+        }
+      }
+      return null;
     } catch (error) {
       console.error("Invalid YouTube URL:", error);
       return null;
@@ -489,12 +496,12 @@ const Game = ({ userId }: { userId: string }) => {
   };
 
   const handlePlaylistSubmit = () => {
-    const playlistId = extractYouTubePlaylistID(playlistLink);
-    if (!playlistId) {
-      toast.error("Please enter a valid YouTube playlist link");
+    const ytData = extractYouTubeID(playlistLink);
+    if (!ytData) {
+      toast.error("Please enter a valid YouTube video or playlist link");
       return;
     }
-    console.log("Playlist ID:", playlistId);
+    console.log(`YouTube ${ytData.type} ID:`, ytData.id);
     socketRef.current.emit("playPlaylist", { playlistLink });
     setIsJukeboxModalOpen(false);
     setPlaylistLink("");
@@ -666,7 +673,7 @@ const Game = ({ userId }: { userId: string }) => {
             <AlertDialogDescription>
               <input
                 type="text"
-                placeholder="Paste YouTube Playlist Link"
+                placeholder="Paste YouTube Video or Playlist Link"
                 className="w-full p-2 border border-gray-300 rounded mb-4"
                 value={playlistLink}
                 onChange={(e) => setPlaylistLink(e.target.value)}
@@ -717,12 +724,11 @@ const Game = ({ userId }: { userId: string }) => {
       </AlertDialog>
       {/* Hidden YouTube Player for Audio-Only Playback */}
       <YouTube
-        videoId="" // Will load the playlist via player.loadPlaylist
+        videoId="" // Will load the video or playlist dynamically
         opts={{
           height: "0",
           width: "0",
           playerVars: {
-            listType: "playlist",
             autoplay: 0,
             controls: 0,
             disablekb: 1,
