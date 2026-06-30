@@ -314,18 +314,18 @@ const Game = ({ userId }: { userId: string }) => {
     });
 
     //* some weird bug casuing video usage in client 2 side
-    // socketRef.current.on("end-call", () => {
-    //   endCall();
-    //   toast("Call ended by the other user.", {
-    //     position: "bottom-right",
-    //     autoClose: 3000,
-    //     hideProgressBar: true,
-    //     closeOnClick: true,
-    //     pauseOnHover: false,
-    //     draggable: true,
-    //     theme: "light",
-    //   });
-    // });
+    socketRef.current.on("end-call", () => {
+      endCall();
+      toast("Call ended by the other user.", {
+        position: "bottom-right",
+        autoClose: 3000,
+        hideProgressBar: true,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        theme: "light",
+      });
+    });
 
     //* HANDLE JUKEBOX
     socket.on("showJukeboxModal", () => {
